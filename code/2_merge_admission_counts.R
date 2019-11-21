@@ -4,7 +4,7 @@ set_threads()
 
 library(data.table)
 library(fst)
-
+library(icd)
 
 denominator_columns <- c("zip", "year", "qid", "race", "sex", "age",
                          "dual", "dead", "pm25_ensemble", "tmmx",
