@@ -11,9 +11,8 @@ library(fst)
 library(icd)
 
 # Get list of relevant ICD9 codes at billable level
-chaps <- icd9_chapters[c("Mental Disorders", "Diseases Of The Nervous System And Sense Organs")]
-codes <- c(expand_range(chaps[[1]][1], chaps[[1]][2]), 
-           expand_range(chaps[[2]][1], chaps[[2]][2]))
+codes <- icd9_chapters$"Diseases Of The Circulatory System"
+codes <- expand_range(codes[1], codes[2])
 codes <- get_leaf(codes)
 
 admissions <- "../data/admissions"
@@ -45,7 +44,7 @@ for (year_ in 2000:2014) {
   counts <- merge(counts, admission_data, by = "zip", all.x = T)
   # note: NA zip codes in admissions data get dropped here
   
-  # print(summary(colSums(counts[ , ..codes])))
+  print(summary(colSums(counts[ , ..codes])))
   
   # This creates annual counts of how many hospitalizations for each individual occured
   # The .SD notation is a bit confusing so please ask me about it
@@ -53,11 +52,9 @@ for (year_ in 2000:2014) {
   # admission_data <- admission_data[,lapply(.SD, sum, na.rm = T), by = "qid",
   #                                  .SDcols = codes]
   # admission_data[, year := year_]
+  
+  counts[ , year := year_]
+  
   write_fst(counts, paste0("../data/admission_counts/admission_counts_", year_, ".fst"))
 }
 
-for (year_ in 2000:2014) {
-  counts <- read_fst(paste0("../data/admission_counts/admission_counts_", year_, ".fst"))
-  print(year_)
-  print(summary(colSums(counts[ , codes])))
-}
