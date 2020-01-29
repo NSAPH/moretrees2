@@ -15,25 +15,24 @@ codes <- c(expand_range(chaps[[1]][1], chaps[[1]][2]),
            expand_range(chaps[[2]][1], chaps[[2]][2]))
 codes <- get_leaf(codes)
 
-denominator_columns <- c("zip", "year", "qid", 
-                         "pm25_ensemble", "tmmx")
+enviro_columns <- c("zip", "date", "pm25_ensemble", "tmmx",
+                    "humidity", "ozone")
                          #"race", "sex", "age",
                          #"dual", "dead", "pm25_ensemble", "tmmx",
                          #"whatever else you think you need")
-admission_columns <- c("qid", codes)
+admission_columns <- c("zipcode_R", "qid", "adate",
+                       "icd9", "ccs_l1", "ccs_l2", 
+                       "ccs_l3", "ccs_l4")
 
-denom_path <- "../data/denominator/"
-admission_counts <- "../data/admission_counts/"
+enviro_path <- "../data/enviro_vars/"
+admissions_cvd <- "../data/admissions_cvd/"
 
 for (year_ in 2000:2014) {
-  patient_summary <- read_data(denom_path, years = year_, 
-                               columns = denominator_columns)
-  admissions <- read_data(admission_counts, years = year_, 
+  enviro <- read_data(enviro_path, years = year_, 
+                               columns = enviro_columns)
+  admissions <- read_data(admissions_cvd, years = year_, 
                           columns = admission_columns)
   merged <- merge(patient_summary, admissions, all.y = T, by = "qid")
-  
-  # aggregate by zip code
-  denom <- dcast(patient_summary, zip ~ year_, fun.aggregate = length, drop = F)
   
   # memory management, don't need the other data in memory any more
   rm(patient_summary)
