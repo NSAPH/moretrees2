@@ -15,7 +15,8 @@ codes <- c(expand_range(chaps[[1]][1], chaps[[1]][2]),
            expand_range(chaps[[2]][1], chaps[[2]][2]))
 codes <- get_leaf(codes)
 
-denominator_columns <- c("zip", "year", "qid")
+denominator_columns <- c("zip", "year", "qid", 
+                         "pm25_ensemble", "tmmx")
                          #"race", "sex", "age",
                          #"dual", "dead", "pm25_ensemble", "tmmx",
                          #"whatever else you think you need")
