@@ -11,13 +11,8 @@ library(fst)
 library(icd)
 library(magrittr)
 
-# Get list of relevant ICD9 codes at billable level
-codes <- icd9_chapters$"Diseases Of The Circulatory System"
-codes <- expand_range(codes[1], codes[2])
-codes <- get_leaf(codes)
-
 # Get data.frame showing mapping from ICD9 to multilevel CCS
-ccs_icd9 <- data.frame(icd9 = codes, stringsAsFactors = F)
+ccs_icd9 <- data.frame(icd9 = unlist(icd9_map_multi_ccs[[1]]), stringsAsFactors = F)
 for (i in 1:4) {
   ccs_list <- icd9_map_multi_ccs[[i]]
   ccs_df <- data.frame(icd9 = unlist(ccs_list), 
@@ -29,6 +24,9 @@ for (i in 1:4) {
   names(ccs_df)[2] <- paste0("ccs_l", i)
   ccs_icd9 <- merge(ccs_icd9, ccs_df, by = "icd9", all.x = T, all.y = F)
 }
+
+# Keep only diseases of the circulatory system
+ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
 
 admissions <- "../data/admissions"
 
