@@ -30,7 +30,7 @@ ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
 
 admissions <- "../data/admissions"
 
-admissions_columns <- c("QID", "DIAG1", "ADATE", "zipcode_R")
+admissions_columns <- c("QID", "DIAG1", "ADATE", "ADM_TYPE", "zipcode_R")
 
 for (year_ in 2000:2014) {
   
@@ -39,7 +39,10 @@ for (year_ in 2000:2014) {
   names(admission_data) <- tolower(names(admission_data))
   
   # Keep only relevant diagnoses
-  admission_data <- subset(admission_data, diag1 %in% codes)
+  admission_data <- subset(admission_data, diag1 %in% ccs_icd9$icd9)
+  
+  # Keep only urgent/emergency hospital admissions
+  admission_data <- subset(admission_data, adm_type %in% c(1, 2))
   
   # Merge in ccs codes
   admission_data <- merge(admission_data, ccs_icd9, by.x = "diag1",
