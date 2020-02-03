@@ -44,6 +44,13 @@ for (year_ in 2000:2014) {
   # Keep only urgent/emergency hospital admissions
   admission_data <- subset(admission_data, adm_type %in% c(1, 2))
   
+  # Convert admission date variable to date format
+  admission_data$adate <- as.Date(admission_data$adate, "%d%b%Y")
+  
+  # Make sure date range is correct
+  admission_data <- subset(admission_data, adate <= as.Date("2014-12-31") &
+                             adate >= as.Date("2000-01-01"))
+  
   # Merge in ccs codes
   admission_data <- merge(admission_data, ccs_icd9, by.x = "diag1",
                           by.y = "icd9", all.x = T)
