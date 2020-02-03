@@ -58,6 +58,8 @@ for (year_ in 2000:2014) {
   # compute lags 1, 2 for humidity
   temp_year[ , c("rmax_lag1", "rmax_lag2") := shift(rmax, n = 1:2, type = "lag"),
             by = ZIP]
+  # exclude extra lag days
+  temp_year <- temp_year[date >= as.Date(paste0(year_, "-01-01"))]
   # write to file
   write_fst(temp_year, path = paste0("../data/enviro/temp_", year_, ".fst"))
   # remove subsetted data.table for memory purposes
@@ -68,4 +70,4 @@ rm(temp)
 
 # ----------------------------------------------- Ozone ---------------------------------------------------
 
-# ozone <- read_rds("../data/ozone_data/PREDICTIONGeneral2_OZONE_zipcode_SUBSET_2000_2012.rds")
+ozone <- read_rds("../data/ozone_data/PREDICTIONGeneral2_OZONE_zipcode_SUBSET_2000_2012.rds")
