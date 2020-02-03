@@ -8,6 +8,8 @@ setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
 library(data.table)
 library(fst)
 library(icd)
+library(stringr)
+library(readr)
 
 admission_columns <- c("zipcode_r", "qid", "adate",
                        "icd9", "ccs_l1", "ccs_l2", 
@@ -17,9 +19,7 @@ pm_path <- "../data/daily_pm/"
 temp_path <- "../data/temperature/"
 ozone_path <- "../data/ozone/"
 
-temp <- read.csv("../data/temperature_daily_zipcode_combined.csv")
-
-# function to rever
+# function to reverse zip codes
 zipReverse <- function(x){
   x <- as.character(x)
   l <- str_length(x)
@@ -56,18 +56,14 @@ for (year_ in 2000:2014) {
     control_pm0 <- subset(read_rds(paste0(pm_path, control0, ".rds")), ZIP == zip)$pm25
     control_pm1 <- subset(read_rds(paste0(pm_path, control1, ".rds")), ZIP == zip)$pm25
     admissions$pm25_control[i] <- (control_pm0 + control_pm1) / 2
-    # case day temperature
+    # print
+    if (i %% 1000 == 0) print(i / nrow(admissions) * 100)
   }
   
   # memory management, don't need the other data in memory any more
-  rm(patient_summary)
   rm(admissions)
   
-  merged[is.na(condition1), condition1 := 0]
-  merged[is.na(condition2), condtion2 := 0]
-  # etc etc
-  
-  write_fst(merged, paste0("../data/merged_admission_counts/denom_admission_counts_",year_,".fst")
+  write_fst(admissions, paste0("../data/merged_admissions_enviro/admissions_enviro_",year_,".fst")
   
   
 }
