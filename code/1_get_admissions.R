@@ -10,20 +10,7 @@ library(data.table)
 library(fst)
 library(icd)
 library(magrittr)
-
-# function to reverse zip codes
-zipReverse <- function(x){
-  as.character(x) %>%
-    strsplit(split = NULL) %>%
-    lapply(FUN = rev) %>%
-    sapply(FUN = paste, collapse = "") %>%
-    as.integer
-} 
-zipReverseVec <- function(x) {
-  y <- x
-  y[!is.na(y)] <- zipReverse(x[!is.na(x)])
-  return(y)
-}
+require(lubridate)
 
 # Get data.frame showing mapping from ICD9 to multilevel CCS
 ccs_icd9 <- data.frame(icd9 = unlist(icd9_map_multi_ccs[[1]]), stringsAsFactors = F)
@@ -62,18 +49,14 @@ for (year_ in 2015:2000) {
   admission_data <- admission_data[diag1 %in% ccs_icd9$icd9]
   
   # Keep only urgent/emergency hospital admissions
-  admission_data <- subset(admission_data, adm_type %in% c(1, 2))
+  admission_data <- admission_data[adm_type %in% c(1, 2)]
   
   # Convert admission date variable to date format
-  admission_data[ , adate := as.Date(adate, "%d%b%Y")]
+  admission_data[ , adate := dmy(adate)]
   
   # Make sure date range is correct
-  admission_data <- admission_data[adate <= as.Date("2014-12-31") &
-                             adate >= as.Date("2000-01-01")]
-  
-  # Reverse zip codes
-  admission_data[ , zip := zipReverseVec(zipcode_r)]
-  admission_data[ , zipcode_r := NULL]
+  admission_data <- admission_data[adate <= make_date(year = 2014, month = 12, day = 31) &
+                             adate >= make_date(year = 2000, month = 1, day = 1)]
   
   # Append previous leftover admissions from future years
   admission_data <- rbind(admission_data, leftover_admissions)
@@ -88,6 +71,10 @@ for (year_ in 2015:2000) {
     # Merge in ccs codes
     admission_data <- merge(admission_data, ccs_icd9, by.x = "diag1",
                             by.y = "icd9", all.x = T)
+
+    # Reverse zip codes
+    admission_data[ , zip := sapply(zipcode_r, function(z) reverse_string(int_to_zip_str(z)))]
+    admission_data[ , zipcode_r := NULL]
     
     # Set data.table keys
     setkey(admission_data, zip, adate)
