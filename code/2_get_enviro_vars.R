@@ -59,11 +59,12 @@ for (year_ in 2000:2014) {
   temp_year[ , c("rmax_lag1", "rmax_lag2") := shift(rmax, n = 1:2, type = "lag"),
             by = ZIP]
   # exclude extra lag days
-  temp_year <- temp_year[date >= make_date(year = year_, month = 1, day = 1))]
+  temp_year <- temp_year[date >= make_date(year = year_, month = 1, day = 1)]
   # write to file
   write_fst(temp_year, path = paste0("../data/enviro/temp_", year_, ".fst"))
   # remove subsetted data.table for memory purposes
   rm(temp_year)
+  print(year_)
 }
 # remove large temp dataset
 rm(temp)
