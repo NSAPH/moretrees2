@@ -73,7 +73,9 @@ for (year_ in 2015:2000) {
                             by.y = "icd9", all.x = T)
 
     # Reverse zip codes
-    admission_data[ , zip := sapply(zipcode_r, function(z) reverse_string(int_to_zip_str(z)))]
+    admission_data[ , zip := sapply(zipcode_r, function(z) int_to_zip_str(z) %>%
+                                      reverse_string %>%
+                                      as.integer)]
     admission_data[ , zipcode_r := NULL]
     
     # Set data.table keys

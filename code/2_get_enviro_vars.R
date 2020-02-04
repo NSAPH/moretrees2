@@ -31,6 +31,7 @@ for (year_ in 2000:2014) {
   write_fst(pm_year, path = paste0("../data/enviro/pm_", year_, ".fst"))
   # remove subsetted data.table for memory purposes
   rm(pm_year)
+  print(year_)
 }
 # remove large PM dataset
 rm(pm)
