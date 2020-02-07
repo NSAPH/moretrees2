@@ -11,59 +11,37 @@ library(icd)
 library(stringr)
 library(readr)
 
-admission_columns <- c("zipcode_r", "qid", "adate",
-                       "icd9", "ccs_l1", "ccs_l2", 
-                       "ccs_l3", "ccs_l4")
+admissions_path <- "../data/admissions_cvd/"
+enviro_path <- "../data/temperature/"
+merged_path <- "../data/merged_admissions_enviro/"
 
-pm_path <- "../data/daily_pm/"
-temp_path <- "../data/temperature/"
-ozone_path <- "../data/ozone/"
-
-# function to reverse zip codes
-zipReverse <- function(x){
-  x <- as.character(x)
-  l <- str_length(x)
-  if (l != 5) {
-    x <- paste0(c(rep("0", 5 - l), x), collapse = "")
-  }
-  x <- paste0(rev(strsplit(x, NULL)[[1]]), collapse = "")
-  return(x)
-}
-
+# set seed because we will randomly select control day
 set.seed(6357312)
 
 for (year_ in 2000:2014) {
   # read in admissions
-  admissions <- read_fst(paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"))
+  admissions <- read_fst(paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"),
+                        as.data.table = T, columns = c("zip", "adate", "qid", "ccs_l4"))
   
   # select control days (randomly exactly one week before or after)
   admissions$cdate <- admissions$adate + sample(c(-7, 7), nrow(admissions), replace = T)
   
-  # merge in lag01 PM2.5 data for case and control days
-  admissions$pm25_case <- numeric(nrow(admissions))
-  admissions$pm25_control <- numeric(nrow(admissions))
-  for (i in 1:(nrow(admissions))) {
-    case0 <- str_remove_all(as.character(admissions$adate[i]), pattern = "-")
-    case1 <- str_remove_all(as.character(admissions$adate[i] - 1), pattern = "-")
-    control0 <- str_remove_all(as.character(admissions$cdate[i]), pattern = "-")
-    control1 <- str_remove_all(as.character(admissions$cdate[i] - 1), pattern = "-")
-    zip <- zipReverse(admissions$zipcode_r[i])
-    # case day PM2.5 lag01
-    case_pm0 <- subset(read_rds(paste0(pm_path, case0, ".rds")), ZIP == zip)$pm25
-    case_pm1 <- subset(read_rds(paste0(pm_path, case1, ".rds")), ZIP == zip)$pm25
-    admissions$pm25_case[i] <- (case_pm0 + case_pm1) / 2
-    # control day PM2.5 lag01
-    control_pm0 <- subset(read_rds(paste0(pm_path, control0, ".rds")), ZIP == zip)$pm25
-    control_pm1 <- subset(read_rds(paste0(pm_path, control1, ".rds")), ZIP == zip)$pm25
-    admissions$pm25_control[i] <- (control_pm0 + control_pm1) / 2
-    # print
-    if (i %% 1000 == 0) print(i / nrow(admissions) * 100)
-  }
+  # read in PM2.5 data
+  pm25 <- read_fst(paste0("../data/enviro/pm_", year_, ".fst"), 
+                   as.data.table = T, columns = c("ZIP", "date", "pm25", "pm25_lag1"))
   
-  # memory management, don't need the other data in memory any more
-  rm(admissions)
+  # compute lag01 PM2.5
+  pm25[ , pm25_lag01_case := (pm25 + pm25_lag1) / 2]
+  pm25[ , c("pm25","pm25_lag1") := NULL]
   
+  # merge lag01 PM2.5 for case and control days
+  admissions <- merge(admissions, pm25, by.x = c("zip", "adate"), by.y = c("ZIP", "date"),
+                      all.x = T, all.y = F)
+  setnames(pm25, "pm25_lag01_case", "pm25_lag01_control")
+  admissions <- merge(admissions, pm25, by.x = c("zip", "cdate"), by.y = c("ZIP", "date"),
+                      all.x = T, all.y = F)
+
+  # write to file
   write_fst(admissions, paste0("../data/merged_admissions_enviro/admissions_enviro_",year_,".fst")
-  
   
 }
