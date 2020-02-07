@@ -13,26 +13,37 @@ library(magrittr)
 require(lubridate)
 
 # Get data.frame showing mapping from ICD9 to multilevel CCS
-ccs_icd9 <- data.frame(icd9 = unlist(icd9_map_multi_ccs[[1]]), stringsAsFactors = F)
+ccs_icd9 <- data.table(icd9 = unlist(icd9_map_multi_ccs[[1]]))
 for (i in 1:4) {
   ccs_list <- icd9_map_multi_ccs[[i]]
-  ccs_df <- data.frame(icd9 = unlist(ccs_list), 
-                         stringsAsFactors = F)
-  ccs_df$ccs <- ccs_list %>% 
-    names %>% # names of the list entries are the CCS codes
-    sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
-    unlist
-  names(ccs_df)[2] <- paste0("ccs_l", i)
-  ccs_icd9 <- merge(ccs_icd9, ccs_df, by = "icd9", all.x = T, all.y = F)
+  ccs_dt <- data.table(icd9 = unlist(ccs_list))
+  ccs_dt[ , ccs := ccs_list %>% 
+           names %>% # names of the list entries are the CCS codes
+           sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
+           unlist]
+  nm <- paste0("ccs_l", i)
+  setnames(ccs_dt, "ccs", nm)
+  ccs_icd9 <- merge(ccs_icd9, ccs_dt, by = "icd9", all.x = T, all.y = F)
+  # Fill in blanks for lower levels with previous level
+  if (i > 1) {
+    nm_p <- paste0("ccs_l", i - 1)
+    ccs_icd9[get(nm) == " ", (nm) := .SD, .SDcols = nm_p] 
+  }
 }
 
 # Keep only diseases of the circulatory system
 ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
 
+# Keep only 4 level code, which contains all the relevant information
+ccs_icd9[ , c("ccs_l1", "ccs_l2", "ccs_l3") := NULL]
+setnames(ccs_icd9, "ccs_l4", "ccs")
+
+# Mapping from unique QIDs to integer IDs
+qids <- read_fst("../data/unique_qids/qids.fst", as.data.table = T)
+
+# Extract relevant admissions
 admissions <- "../data/admissions"
-
 admissions_columns <- c("QID", "DIAG1", "ADATE", "ADM_TYPE", "zipcode_R")
-
 leftover_admissions <- NULL
 
 for (year_ in 2015:2000) { 
@@ -73,10 +84,19 @@ for (year_ in 2015:2000) {
                             by.y = "icd9", all.x = T)
 
     # Reverse zip codes
-    admission_data[ , zip := sapply(zipcode_r, function(z) int_to_zip_str(z) %>%
-                                      reverse_string %>%
-                                      as.integer)]
+    zips <- data.table(zipcode_r = unique(admission_data$zipcode_r), key = "zipcode_r")
+    zips <- zips[!is.na(zipcode_r)] # NA zipcodes can be left as NA
+    zips[ , zip := sapply(zipcode_r, function(z) int_to_zip_str(z) %>%
+                            reverse_string %>%
+                            as.integer)]
+    # Merge in reversed zip codes
+    admission_data <- merge(admission_data, zips, by = "zipcode_r", all.x = T, all.y = F)
     admission_data[ , zipcode_r := NULL]
+    
+    # Merge in integer IDs to replace QIDs
+    admission_data <- merge(admission_data, qids, by = "qid",
+                            all.x = T, all.y = F)
+    admission_data[ , qid := NULL]
     
     # Set data.table keys
     setkey(admission_data, zip, adate)
@@ -87,5 +107,7 @@ for (year_ in 2015:2000) {
   
   # Remove dataset
   rm(admission_data)
+  
+  print(year_)
 }
 
