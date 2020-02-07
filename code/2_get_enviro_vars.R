@@ -12,21 +12,28 @@ pm <- fread("../data/daily_pm/all_days_PM.csv", data.table = T,
             key = c("ZIP", "date"))
 # re-format date variable
 pm[ , date := ymd(date)]
-# Keep only relevant years
-pm <- pm[date >= make_date(year = 2000, month = 1, day = 1) & 
-               date <= make_date(year = 2014, month = 12, day = 31)]
+# Keep only relevant years 
+# (need to keep buffer of one week + 3 days on either end due to lag and control days)
+control_dist <- 7 # max number of days between case day and control day
+maxlag <- 3 # maximum lag to consider
+buffer <- control_dist + maxlag
+pm <- pm[date >= make_date(year = 2000, month = 1, day = 1) - buffer & 
+               date <= make_date(year = 2014, month = 12, day = 31) + buffer]
 
 for (year_ in 2000:2014) {
   # subset to particular year
-  pm_year <- pm[date <= make_date(year = year_, month = 12, day = 31) &
-                  date >= make_date(year = year_, month = 1, day = 1) - 2] # need to include two days due to lag
+  # (need to keep buffer of one week + 3 days on either end due to lag and control days)
+  pm_year <- pm[date >= make_date(year = year_, month = 1, day = 1) - buffer &
+                  date <= make_date(year = year_, month = 12, day = 31) + buffer]
+  
   # sort by zip/date
   pm_year <- pm_year[order(ZIP, date)]
   # compute lags 1, 2 for PM2.5
   pm_year[ , c("pm25_lag1", "pm25_lag2") := shift(pm25, n = 1:2, type = "lag"),
                            by = ZIP]
   # exclude extra lag days
-  pm_year <- pm_year[date >= make_date(year = year_, month = 1, day = 1)]
+  pm_year <- pm_year[date >= make_date(year = year_, month = 1, day = 1) - control_dist &
+                       date <= make_date(year = year_, month = 12, day = 31) + control_dist]
   # write to file
   write_fst(pm_year, path = paste0("../data/enviro/pm_", year_, ".fst"))
   # remove subsetted data.table for memory purposes
@@ -43,13 +50,14 @@ temp <- fread("../data/temperature/temperature_daily_zipcode_combined.csv", data
                  key = c("ZIP", "date"))
 temp[ , c("pr", "year") := NULL]
 temp[ , date := ymd(date)]
-temp <- temp[date >= make_date(year = 2000, month = 1, day = 1) & 
-               date <= make_date(year = 2014, month = 12, day = 31)]
+temp <- temp[date >= make_date(year = 2000, month = 1, day = 1) - buffer & 
+               date <= make_date(year = 2014, month = 12, day = 31) + buffer]
 
 for (year_ in 2000:2014) {
   # subset to particular year
-  temp_year <- temp[date <= make_date(year = year_, month = 12, day = 31) &
-                      date >= make_date(year = year_, month = 1, day = 1) - 3] # need to include three days due to lag
+  # (need to keep buffer of one week + 3 days on either end due to lag and control days)
+  temp_year <- temp[date >= make_date(year = year_, month = 1, day = 1) - buffer &
+                      date <= make_date(year = year_, month = 12, day = 31) + buffer] 
   # sort by zip/date
   temp_year <- temp_year[order(ZIP, date)]
   # compute lags 1, 2, 3 for temp
@@ -59,7 +67,8 @@ for (year_ in 2000:2014) {
   temp_year[ , c("rmax_lag1", "rmax_lag2") := shift(rmax, n = 1:2, type = "lag"),
             by = ZIP]
   # exclude extra lag days
-  temp_year <- temp_year[date >= make_date(year = year_, month = 1, day = 1)]
+  temp_year <- temp_year[date >= make_date(year = year_, month = 1, day = 1) - control_dist &
+                           date <= make_date(year = year_, month = 12, day = 31) + control_dist]
   # write to file
   write_fst(temp_year, path = paste0("../data/enviro/temp_", year_, ".fst"))
   # remove subsetted data.table for memory purposes
