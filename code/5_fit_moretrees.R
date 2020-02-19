@@ -2,7 +2,7 @@
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
 
 # Check for updates on moretrees master branch
-# devtools::install_github("emgthomas/moretrees_pkg")
+# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
 require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
@@ -42,16 +42,23 @@ tr <- moretrees::ccs_tree("7")$tr # note: we have an error here.
 
 dt <- dt[ccs %in% names(V(tr))[V(tr)$leaf]]
 
+# Take a subsample (stratified on outcomes)
+# require(splitstackshape)
+set.seed(24568)
+# dt <- stratified(indt = dt, group = "ccs", size = 50)
+
 # Run MOReTreeS
-n <- nrow(dt)
 mod1 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs,
+                             max_iter = 50,
                              tr = tr, 
+                             method = "tree",
                              nrestarts = 1,
-                             W_method = "individual",
-                             print_freq = 1)
+                             W_method = "shared",
+                             print_freq = 1,  
+                             get_ml = FALSE)
 
 
 
