@@ -10,9 +10,10 @@ require(fst)
 # Load data
 dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro.fst",
                as.data.table = T, 
-               columns = c("id", "adate", "ccs", "pm25_lag01_case", "pm25_lag01_control",
+               columns = c("id", "adate", "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                            "tmmx_lag01_case", "tmmx_lag01_control",
                            "rmax_lag01_case", "rmax_lag01_control"))
+
 # First admission only
 dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
@@ -40,19 +41,22 @@ require(magrittr)
 require(igraph)
 tr <- moretrees::ccs_tree("7")$tr # note: we have an error here.
 
-dt <- dt[ccs %in% names(V(tr))[V(tr)$leaf]]
+# check all outcome codes are leaves of tree
+sum(!(dt$ccs_added_zeros %in% names(V(tr))[V(tr)$leaf])) == 0
 
 # Take a subsample (stratified on outcomes)
-# require(splitstackshape)
 set.seed(24568)
-# dt <- stratified(indt = dt, group = "ccs", size = 50)
+# require(splitstackshape)
+# dt <- stratified(indt = dt, group = "ccs_added_zeros", size = 50)
 
 # Run MOReTreeS
+# Started around 4pm Thursday
 mod1 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs,
-                             max_iter = 50,
+                             outcomes = dt$ccs_added_zeros,
+                             max_iter = 1E4,
+                             update_hyper_freq = 20,
                              tr = tr, 
                              method = "tree",
                              nrestarts = 1,

@@ -5,7 +5,8 @@ setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
 
 library(NSAPHutils)
 set_threads()
-
+# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
+require(moretrees)
 library(data.table)
 library(fst)
 library(icd)
@@ -13,30 +14,8 @@ library(magrittr)
 require(lubridate)
 
 # Get data.frame showing mapping from ICD9 to multilevel CCS
-ccs_icd9 <- data.table(icd9 = unlist(icd9_map_multi_ccs[[1]]))
-for (i in 1:4) {
-  ccs_list <- icd9_map_multi_ccs[[i]]
-  ccs_dt <- data.table(icd9 = unlist(ccs_list))
-  ccs_dt[ , ccs := ccs_list %>% 
-           names %>% # names of the list entries are the CCS codes
-           sapply(FUN = function(nm) rep(nm, length(ccs_list[[nm]]))) %>%
-           unlist]
-  nm <- paste0("ccs_l", i)
-  setnames(ccs_dt, "ccs", nm)
-  ccs_icd9 <- merge(ccs_icd9, ccs_dt, by = "icd9", all.x = T, all.y = F)
-  # Fill in blanks for lower levels with previous level
-  if (i > 1) {
-    nm_p <- paste0("ccs_l", i - 1)
-    ccs_icd9[get(nm) == " ", (nm) := .SD, .SDcols = nm_p] 
-  }
-}
-
-# Keep only diseases of the circulatory system
-ccs_icd9 <- subset(ccs_icd9, ccs_l1 == "7")
-
-# Keep only 4 level code, which contains all the relevant information
-ccs_icd9[ , c("ccs_l1", "ccs_l2", "ccs_l3") := NULL]
-setnames(ccs_icd9, "ccs_l4", "ccs")
+ccs_icd9 <- moretrees::ccs_tree("7")$ccs_icd_mapping
+names(ccs_icd9) <- c("icd9", "ccs", "ccs_added_zeros")
 
 # Mapping from unique QIDs to integer IDs
 qids <- read_fst("../data/unique_qids/qids.fst", as.data.table = T)
