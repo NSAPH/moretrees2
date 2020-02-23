@@ -64,6 +64,11 @@ mod1 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1),
                              print_freq = 1,  
                              get_ml = FALSE)
 
+# Delete g
+mod2 <- mod1
+mod2$mod$hyperparams$g_eta <- NULL
+mod2$mod$hyperparams$eta <- NULL
+save(mod2, file = "../results/attempt1.Rds")
 
 
 
