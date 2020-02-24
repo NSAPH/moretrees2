@@ -7,12 +7,25 @@ require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
 
+# Load zipcode/fips info
+# Got this data from https://www.unitedstateszipcodes.org/zip-code-database/
+zips <- read.csv("./data/zip_code_database.csv")
+zips <- data.table::data.table(zips, key = "zip")
+zips <- zips[, c("zip", "state")]
+states_list <- c("CT", "ME", "MA", "NH", "RI", 
+                 "VT", "NJ", "NY", "PA")
+
 # Load data
 dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro.fst",
                as.data.table = T, 
-               columns = c("id", "adate", "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
+               columns = c("id", "adate", "zip",
+                           "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                            "tmmx_lag01_case", "tmmx_lag01_control",
                            "rmax_lag01_case", "rmax_lag01_control"))
+
+# Keep only north east region
+dt <- merge(dt, zips, by = "zip", all.x = T, all.y = F)
+dt <- dt[state %in% states_list]
 
 # First admission only
 dt <- dt[order(id, adate)]
@@ -30,6 +43,7 @@ dt[ , rmax := rmax / sd(rmax, na.rm = T)]
 
 # Remove unnecessary columns
 dt[ , c("id", "adate", "pm25_lag01_case", "pm25_lag01_control",
+        "zip", "state",
         "tmmx_lag01_case", "tmmx_lag01_control",
         "rmax_lag01_case", "rmax_lag01_control") := NULL]
 
