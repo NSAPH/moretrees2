@@ -9,7 +9,7 @@ require(fst)
 
 # Load zipcode/fips info
 # Got this data from https://www.unitedstateszipcodes.org/zip-code-database/
-zips <- read.csv("./data/zip_code_database.csv")
+zips <- read.csv("../data/zip_code_database.csv")
 zips <- data.table::data.table(zips, key = "zip")
 zips <- zips[, c("zip", "state")]
 states_list <- c("CT", "ME", "MA", "NH", "RI", 
@@ -59,7 +59,7 @@ tr <- moretrees::ccs_tree("7")$tr # note: we have an error here.
 sum(!(dt$ccs_added_zeros %in% names(V(tr))[V(tr)$leaf])) == 0
 
 # Take a subsample (stratified on outcomes)
-set.seed(24568)
+set.seed(244356)
 # require(splitstackshape)
 # dt <- stratified(indt = dt, group = "ccs_added_zeros", size = 50)
 
@@ -82,46 +82,5 @@ mod1 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1),
 moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt1.RData")
-
-set.seed(9384765)
-
-# keep running
-mod2 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs_added_zeros,
-                             initial_values = mod1$mod,
-                             max_iter = 1E4,
-                             update_hyper_freq = 20,
-                             tr = tr, 
-                             method = "tree",
-                             nrestarts = 1,
-                             W_method = "shared",
-                             print_freq = 1,  
-                             get_ml = FALSE)
-
-# Delete g
-moretrees_results <- mod2
-moretrees_results$mod$hyperparams$g_eta <- NULL
-moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt1_run2.RData")
-
-# keep running
-mod3 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs_added_zeros,
-                             initial_values = mod2$mod,
-                             max_iter = 1E4,
-                             update_hyper_freq = 20,
-                             tr = tr, 
-                             method = "tree",
-                             nrestarts = 1,
-                             W_method = "shared",
-                             print_freq = 1,  
-                             get_ml = FALSE)
-
-
-
+save(moretrees_results, file = "../results/attempt1_northEast.RData")
 
