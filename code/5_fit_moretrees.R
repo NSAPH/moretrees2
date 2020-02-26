@@ -108,6 +108,12 @@ mod3 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1),
                              print_freq = 1,  
                              get_ml = FALSE)
 
+# Delete g
+moretrees_results <- mod3
+moretrees_results$mod$hyperparams$g_eta <- NULL
+moretrees_results$mod$hyperparams$eta <- NULL
+save(moretrees_results, file = "../results/attempt1_run3.RData")
+
 
 
 
