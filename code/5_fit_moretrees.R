@@ -104,3 +104,23 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 save(moretrees_results, file = "../results/attempt2_northEast.RData")
 
+mod3 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
+                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
+                             y = rep(1, nrow(dt)),
+                             outcomes = dt$ccs_added_zeros,
+                             max_iter = 3E4,
+                             update_hyper_freq = 20,
+                             tr = tr, 
+                             method = "tree",
+                             nrestarts = 1,
+                             W_method = "shared",
+                             print_freq = 1,  
+                             initial_values = mod2$mod,
+                             get_ml = FALSE)
+
+# Delete g
+moretrees_results <- mod3
+moretrees_results$mod$hyperparams$g_eta <- NULL
+moretrees_results$mod$hyperparams$eta <- NULL
+save(moretrees_results, file = "../results/attempt3_northEast.RData")
+
