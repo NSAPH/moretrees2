@@ -22,7 +22,7 @@ qids <- read_fst("../data/unique_qids/qids.fst", as.data.table = T)
 
 # Extract relevant admissions
 admissions <- "../data/admissions"
-admissions_columns <- c("QID", "DIAG1", "ADATE", "ADM_TYPE", "zipcode_R")
+admissions_columns <- c("QID", "DIAG1", "ADATE", "ADM_TYPE", "zipcode_R", "SSA_STATE_CD")
 leftover_admissions <- NULL
 
 for (year_ in 2015:2000) { 

@@ -40,7 +40,8 @@ for (year_ in 2000:2014) {
   # read in admissions
   # NOTE: for now I am ignoring the fact that multiple hospitalizations may occur for same individual
   admissions <- read_fst(paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"),
-                        as.data.table = T, columns = c("id", "zip", "adate", "ccs", "ccs_added_zeros"))
+                        as.data.table = T, columns = c("id", "zip", "adate", 
+                                                       "ccs", "ccs_added_zeros", "ssa_state_cd"))
   
   # select control days (stratified on year, month, day of week)
   # get list of potential controls
