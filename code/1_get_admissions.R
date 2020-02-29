@@ -13,9 +13,18 @@ library(icd)
 library(magrittr)
 require(lubridate)
 
-# Get data.frame showing mapping from ICD9 to multilevel CCS
-ccs_icd9 <- moretrees::ccs_tree("7")$ccs_icd_mapping
-names(ccs_icd9) <- c("icd9", "ccs", "ccs_added_zeros")
+# Get data.frame showing mapping from ICD9 to multilevel CCS for cardiovascular disease
+ccs_icd_cvd <- moretrees::ccs_tree("7")$ccs_icd_mapping
+names(ccs_icd_cvd) <- c("icd9", "ccs", "ccs_added_zeros")
+ccs_icd_cvd$dataset <- "cvd"
+
+# Get data.frame showing mapping from ICD9 to multilevel CCS for respiratory disease
+ccs_icd_resp <- moretrees::ccs_tree("8")$ccs_icd_mapping
+names(ccs_icd_resp) <- c("icd9", "ccs", "ccs_added_zeros")
+ccs_icd_resp$dataset <- "resp"
+
+# Both
+ccs_icd <- rbind(ccs_icd_cvd, ccs_icd_resp)
 
 # Mapping from unique QIDs to integer IDs
 qids <- read_fst("../data/unique_qids/qids.fst", as.data.table = T)
@@ -35,11 +44,11 @@ for (year_ in 2015:2000) {
   admission_data <- read_data(admissions, years = year_, columns = admissions_columns)
   names(admission_data) <- tolower(names(admission_data))
   
-  # Keep only relevant diagnoses
-  admission_data <- admission_data[diag1 %in% ccs_icd9$icd9]
-  
   # Keep only urgent/emergency hospital admissions
   admission_data <- admission_data[adm_type %in% c(1, 2)]
+  
+  # Keep only relevant diagnoses
+  admission_data <- admission_data[diag1 %in% ccs_icd$icd9]
   
   # Convert admission date variable to date format
   admission_data[ , adate := dmy(adate)]
@@ -59,7 +68,7 @@ for (year_ in 2015:2000) {
     admission_data <- admission_data[year(adate) == year_]
     
     # Merge in ccs codes
-    admission_data <- merge(admission_data, ccs_icd9, by.x = "diag1",
+    admission_data <- merge(admission_data, ccs_icd, by.x = "diag1",
                             by.y = "icd9", all.x = T)
 
     # Reverse zip codes
@@ -80,8 +89,9 @@ for (year_ in 2015:2000) {
     # Set data.table keys
     setkey(admission_data, zip, adate)
     
-    # Write to file
-    write_fst(admission_data, paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"))
+    # Write to file separately for CVD and respiratory disease
+    write_fst(admission_data[dataset == "cvd"][ , dataset := NULL], paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"))
+    write_fst(admission_data[dataset == "resp"][ , dataset := NULL], paste0("../data/admissions_resp/admissions_resp_", year_, ".fst"))
   }
   
   # Remove dataset
