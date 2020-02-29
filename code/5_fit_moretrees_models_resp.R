@@ -56,13 +56,21 @@ dt <- na.omit(dt)
 # Get tree
 require(magrittr)
 require(igraph)
-tr <- moretrees::ccs_tree("7")$tr # note: we have an error here.
+tr <- moretrees::ccs_tree("8")$tr 
 
 # check all outcome codes are leaves of tree
-sum(!(dt$ccs_added_zeros %in% names(V(tr))[V(tr)$leaf])) == 0
+setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
+
+# Some leaves are not outcomes, so take subtree
+vids <- unique(dt$ccs_added_zeros)
+vids <- ego(tr, order = 100, nodes = vids, mode = "in")
+vids <- Reduce(union, vids)
+tr <- induced_subgraph(graph = tr, vids = vids)
+# check again
+setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
 # Model 1: no covariate control ------------------------------------------------------------------------------------------
-set.seed(34564)
+set.seed(6239502)
 mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = NULL,
                              y = rep(1, nrow(dt)),
@@ -84,7 +92,7 @@ save(moretrees_results, file = "../results/mod1_split35_northEast_resp.RData")
 rm(mod1)
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
-set.seed(987234)
+set.seed(84359)
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
@@ -126,7 +134,7 @@ dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_
 
 
 # Run model
-set.seed(9845630)
+set.seed(623950)
 W_cols <- c(paste0("tmmx_spl", 1:df), paste0("rmax_spl", 1:df))
 mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
