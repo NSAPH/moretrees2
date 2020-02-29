@@ -1,0 +1,6 @@
+ccs_lvls <- read.csv("./data/Multi_Level_CCS_2015_cleaned/dxmlabel-13.csv")
+require(stringr)
+ccs_lvls$label <- str_remove(ccs_lvls$label, "\\s\\[.*")
+ccs_lvls$label <- str_trim(ccs_lvls$label, side = "right")
+ccs_lvls$ccs_code <- str_trim(ccs_lvls$ccs_code, side = "right")
+write.csv(ccs_lvls, "./data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv", row.names = F)
