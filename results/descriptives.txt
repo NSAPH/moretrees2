@@ -1,0 +1,11 @@
+Total CVD admissions in study period =  7190123
+
+Total first admissions for CVD =  3383810
+
+Complete cases for CVD =  3372865 ( 99.67655 %)
+
+Total respiratory admissions in study period =  3325108
+
+Total first admissions for respiratory disease =  1809639
+
+Complete cases for respiratory disease =  1802560 ( 99.60882 %)
