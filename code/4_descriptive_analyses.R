@@ -48,6 +48,12 @@ cat("\n\nTotal first admissions for CVD = ", n_cvd)
 dt_cvd <- na.omit(dt_cvd)
 cat("\n\nComplete cases for CVD = ", nrow(dt_cvd), "(", 100 * nrow(dt_cvd) / n_cvd, "%)")
 
+# CVD: median PM2.5 exposure by case status
+cat("\n\nPM2.5 summary for cases:\n")
+summary(dt_cvd$pm25_lag01_case)
+cat("\n\nPM2.5 summary for controls:\n")
+summary(dt_cvd$pm25_lag01_control)
+
 # Respiratory disease ------------------------------------------
 cat("\n\nTotal respiratory admissions in study period = ", nrow(dt_resp))
 
@@ -61,6 +67,12 @@ cat("\n\nTotal first admissions for respiratory disease = ", n_resp)
 dt_resp <- na.omit(dt_resp)
 cat("\n\nComplete cases for respiratory disease = ", nrow(dt_resp), "(", 100 * nrow(dt_resp) / n_resp, "%)")
 
+# Respiratory: median PM2.5 exposure by case status
+cat("\n\nPM2.5 summary for cases:\n")
+summary(dt_resp$pm25_lag01_case)
+cat("\n\nPM2.5 summary for controls:\n")
+summary(dt_resp$pm25_lag01_control)
+
 sink()
 
 # Table 1 ------------------------------------------------------------------------------------------------------
@@ -71,27 +83,75 @@ require(ggplot2)
 require(moretrees)
 require(igraph)
 require(reshape2)
+require(stringr)
 
-# Get level 2 labels for CVD
+# Get labels for CVD
 ccs_labels <- read.csv("../data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
+ccs_labels$label <- paste0(ccs_labels$label, " (", ccs_labels$ccs, ")")
 tr_cvd <- ccs_tree("7")$tr
 lvls_cvd <- ego(tr_cvd, V(tr_cvd)[V(tr_cvd)$leaf], order = 10, mode = "in")
 lvls_cvd <- as.data.frame(t(sapply(lvls_cvd, function(x) rev(names(x)))))
 names(lvls_cvd) <- paste0("ccs_lvl", 1:4)
-lvls_cvd <- merge(lvls_cvd, ccs_labels, by.x = "ccs_lvl2", by.y = "ccs_code",
-                  all.x = T, all.y = F)
-lvls_cvd$label <- as.character(lvls_cvd$label)
-lvls_cvd$label <- paste0(lvls_cvd$label, " (", lvls_cvd$ccs_lvl2, ")")
-lvls_cvd$label <- factor(lvls_cvd$label, levels = unique(lvls_cvd$label))
-dt_cvd <- merge(dt_cvd, lvls_cvd[ , c("ccs_lvl4", "label")], by.x = "ccs_added_zeros", by.y = "ccs_lvl4",
+lvls_cvd$lvl4_merge <- lvls_cvd$ccs_lvl4
+for (i in 1:4) {
+  col_i <- paste0("ccs_lvl", i)
+  lvls_cvd[ , col_i]  <- str_remove_all(lvls_cvd[ , col_i], "\\.0")
+  names(ccs_labels)[2] <- paste0("label", i)
+  lvls_cvd <- merge(lvls_cvd, ccs_labels, by.x = col_i, by.y = "ccs_code",
+                    all.x = T, all.y = F, sort = F)
+  
+}
+dt_cvd <- merge(dt_cvd, lvls_cvd[ , c("lvl4_merge", paste0("label", 1:4))], 
+                by.x = "ccs_added_zeros", by.y = "lvl4_merge",
                 all.x = T, all.y = F)
 
-# Reshape
-dt_cvd_plot <- dt_cvd[, c("pm25_lag01_case", "pm25_lag01_control", "label")]
-dt_cvd_plot <- reshape(dt_cvd_plot, direction = "long", varying = c("pm25_lag01_case", "pm25_lag01_control"),
-                       times = c("case", "control"), v.names = "pm25_lag01")
+# Get mean difference in PM25 between case and control by disease
+mean.diff.log <- function(x , y) {
+  ttest <- t.test(log(x), log(y), paired = TRUE)
+  list(est = ttest$estimate, cil = ttest$conf.int[1], ciu = ttest$conf.int[2], n = length(x))
+}
+for (i in 1:3) {
+  dt_cvd[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), i) := mean.diff.log(pm25_lag01_case, pm25_lag01_control),
+         by = get(paste0("label", i))]
+}
+cvd_plot <- unique(dt_cvd[ , paste0(c("label", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:3, each = 5))])
+dt_cvd[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), rep(1:3, each = 3)) := NULL]
 
-# Plot
-cvd_plot <- ggplot(dt_cvd_plot) + geom_density(aes(x = pm25_lag01, fill = time), alpha = 0.2) + 
-  facet_wrap(label ~ ., ncol = 1) + theme_minimal() + scale_x_continuous(trans = "log10", limits = c(1, 140))
+# Plot PM25 histograms ---------------------------------------------------
+cvd_hist <- ggplot(dt_cvd) + geom_density(aes(x = pm25_lag01_case)) + 
+  facet_wrap(label2 ~ ., ncol = 1) + theme_minimal() +
+  scale_x_continuous(trans = "log10", lim = c(1, max(dt_cvd$pm25_lag01_case)))
+
+# Nested difference plots -------------------------------------------------------------
+require(gridExtra)
+plot.count <- 0
+grobs <- list()
+lims <- c(min(cvd_plot[ , paste0("cil_lvl", 1:3)]),
+          max(cvd_plot[ , paste0("ciu_lvl", 1:3)]))
+layout <- integer()
+for (i in 1:3) {
+  lab <- paste0("label", i)
+  xmin <- paste0("cil_lvl", i)
+  xmax <- paste0("ciu_lvl", i)
+  x <- paste0("est_lvl", i)
+  for (disease in unique(cvd_plot[ , get(lab)])) {
+    dat <- as.data.frame(cvd_plot[get(lab) == disease])
+    dat <- dat[ , c(x, xmin, xmax)]
+    dat <- unique(dat)
+    grob <- ggplot(dat) + 
+      geom_point(aes(x = get(x), y = 1)) +
+      geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), y = 1)) +
+      ggtitle(disease) + theme_minimal() + 
+      theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.text.y = element_blank(), 
+            axis.ticks.y = element_blank(), axis.line.y = element_blank()) +
+      scale_x_continuous(limits = lims)
+    plot.count <- plot.count + 1
+    grobs[[plot.count]] <- grob
+    layout <- c(layout, rep(plot.count, times = sum(cvd_plot[ , get(lab)] == disease)))
+  }
+}
+
+
+
+
 
