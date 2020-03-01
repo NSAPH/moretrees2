@@ -11,7 +11,7 @@ library(icd)
 library(stringr)
 library(readr)
 
-admissions_path <- "../data/admissions_cvd/"
+admissions_path <- "../data/admissions_resp/"
 enviro_path <- "../data/enviro/"
 merged_path <- "../data/merged_admissions_enviro/"
 
@@ -34,13 +34,14 @@ get_control_dates <- function(begin, end) {
 admissions_all <- NULL
 
 # set seed because we will randomly select control day
-set.seed(6357312)
+set.seed(973486)
 
 for (year_ in 2000:2014) {
   # read in admissions
   # NOTE: for now I am ignoring the fact that multiple hospitalizations may occur for same individual
-  admissions <- read_fst(paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"),
-                        as.data.table = T, columns = c("id", "zip", "adate", "ccs", "ccs_added_zeros"))
+  admissions <- read_fst(paste0("../data/admissions_resp/admissions_resp_", year_, ".fst"),
+                        as.data.table = T, columns = c("id", "zip", "adate", 
+                                                       "ccs", "ccs_added_zeros", "ssa_state_cd"))
   
   # select control days (stratified on year, month, day of week)
   # get list of potential controls
@@ -123,4 +124,4 @@ for (year_ in 2000:2014) {
 }
 
 # write to file (all admissions)
-write_fst(admissions_all, "../data/merged_admissions_enviro/admissions_enviro.fst")
+write_fst(admissions_all, "../data/merged_admissions_enviro/admissions_enviro_resp.fst")

@@ -7,25 +7,22 @@ require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
 
-# Load zipcode/fips info
-# Got this data from https://www.unitedstateszipcodes.org/zip-code-database/
-zips <- read.csv("../data/zip_code_database.csv")
-zips <- data.table::data.table(zips, key = "zip")
-zips <- zips[, c("zip", "state")]
-states_list <- c("CT", "ME", "MA", "NH", "RI", 
-                 "VT", "NJ", "NY", "PA")
+# Select states
+states_list <- c(7, 20, 22, 30, 41,
+                 47, 31, 33, 39)
+# states_list <- c("CT", "ME", "MA", "NH", "RI", 
+#                 "VT", "NJ", "NY", "PA")
 
 # Load data
 dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro.fst",
                as.data.table = T, 
-               columns = c("id", "adate", "zip",
+               columns = c("id", "adate", "ssa_state_cd",
                            "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                            "tmmx_lag01_case", "tmmx_lag01_control",
                            "rmax_lag01_case", "rmax_lag01_control"))
 
 # Keep only north east region
-dt <- merge(dt, zips, by = "zip", all.x = T, all.y = F)
-dt <- dt[state %in% states_list]
+dt <- dt[ssa_state_cd %in% states_list]
 
 # First admission only
 dt <- dt[order(id, adate)]
@@ -37,13 +34,16 @@ dt[ , tmmx := tmmx_lag01_case - tmmx_lag01_control]
 dt[ , rmax := rmax_lag01_case - rmax_lag01_control]
 
 # Divide vars by their standard deviation
-dt[ , pm25 := pm25 / sd(pm25, na.rm = T)]
-dt[ , tmmx := tmmx / sd(tmmx, na.rm = T)]
-dt[ , rmax := rmax / sd(rmax, na.rm = T)]
+pm25_sd <- sd(pm25, na.rm = T)
+tmmx_sd <- sd(tmmx, na.rm = T)
+rmax_sd <- sd(rmax, na.rm = T)
+dt[ , pm25 := pm25 / pm25_sd]
+dt[ , tmmx := tmmx / tmmx_sd]
+dt[ , rmax := rmax / rmax_sd]
 
 # Remove unnecessary columns
-dt[ , c("id", "adate", "pm25_lag01_case", "pm25_lag01_control",
-        "zip", "state",
+dt[ , c("id", "adate", "ssa_state_cd",
+        "pm25_lag01_case", "pm25_lag01_control",
         "tmmx_lag01_case", "tmmx_lag01_control",
         "rmax_lag01_case", "rmax_lag01_control") := NULL]
 
@@ -69,80 +69,19 @@ mod1 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1),
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs_added_zeros,
-                             max_iter = 1E4,
+                             max_iter = 1E5,
+                             tol = 1E-16,
                              update_hyper_freq = 20,
                              tr = tr, 
                              method = "tree",
                              nrestarts = 1,
                              W_method = "shared",
                              print_freq = 1,  
-                             get_ml = FALSE)
+                             get_ml = TRUE)
 
 # Delete g
 moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt1_northEast.RData")
-
-mod2 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs_added_zeros,
-                             max_iter = 1E4,
-                             update_hyper_freq = 20,
-                             tr = tr, 
-                             method = "tree",
-                             nrestarts = 1,
-                             W_method = "shared",
-                             print_freq = 1,  
-                             initial_values = mod1$mod,
-                             get_ml = FALSE)
-
-# Delete g
-moretrees_results <- mod2
-moretrees_results$mod$hyperparams$g_eta <- NULL
-moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt2_northEast.RData")
-
-mod3 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs_added_zeros,
-                             max_iter = 3E4,
-                             update_hyper_freq = 20,
-                             tr = tr, 
-                             method = "tree",
-                             nrestarts = 1,
-                             W_method = "shared",
-                             print_freq = 1,  
-                             initial_values = mod2$mod,
-                             get_ml = FALSE)
-
-# Delete g
-moretrees_results <- mod3
-moretrees_results$mod$hyperparams$g_eta <- NULL
-moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt3_northEast.RData")
-
-# Decreasing tol
-mod4 <- moretrees::moretrees(X = as.matrix(dt$pm25, ncol = 1), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
-                             outcomes = dt$ccs_added_zeros,
-                             max_iter = 3E4,
-                             update_hyper_freq = 20,
-                             tr = tr, 
-                             method = "tree",
-                             nrestarts = 1,
-                             W_method = "shared",
-                             print_freq = 1,  
-                             initial_values = mod3$mod,
-                             tol = 1E-16,
-                             get_ml = FALSE)
-
-# Delete g
-moretrees_results <- mod4
-moretrees_results$mod$hyperparams$g_eta <- NULL
-moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/attempt4_northEast.RData")
+save(moretrees_results, sd_pm25, sd_tmmx, sd_rmax, file = "../results/mod1_northEast.RData")
 

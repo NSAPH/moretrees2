@@ -1,0 +1,30 @@
+Total CVD admissions in study period =  7190123
+
+Total first admissions for CVD =  3383810
+
+Complete cases for CVD =  3372865 ( 99.67655 %)
+
+PM2.5 summary for cases:
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+  0.00522   6.32555   9.41408  11.07548  14.01777 133.30443 
+
+
+PM2.5 summary for controls:
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+  0.00764   6.30563   9.37202  11.04325  13.96834 122.66493 
+
+
+Total respiratory admissions in study period =  3325108
+
+Total first admissions for respiratory disease =  1809639
+
+Complete cases for respiratory disease =  1802560 ( 99.60882 %)
+
+PM2.5 summary for cases:
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+  0.01824   6.23624   9.24572  10.87862  13.74970 122.66493 
+
+
+PM2.5 summary for controls:
+     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+  0.00979   6.20073   9.17174  10.78946  13.61566 122.53190 
