@@ -4,6 +4,7 @@ require(RColorBrewer)
 require(stringr)
 require(gridExtra)
 require(data.table)
+require(ggplot2)
 
 firstlower <- function(x) {
   substr(x, 1, 1) <- tolower(substr(x, 1, 1))
@@ -39,7 +40,7 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   tr <- tr$tr
   ccs_zeros <- ccs_icd9_mapping[, c("ccs_original", "ccs_added_zeros")]
   ccs_zeros <- ccs_zeros[!duplicated(ccs_zeros), ]
-  ccs <- merge(ccs_zeros, ccs_lvls, by.x = "ccs_original", by.y = "ccs_code")
+  ccs <- merge(ccs_zeros, ccs_lvls, by.x = "ccs_original", by.y = "ccs_code", sort = F)
   
   # Map outcome groups to disease names -----------------------------------------
   frmt <- paste0("%.", digits, "f")
@@ -179,6 +180,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          digits = 1, lab.nudge = 1.5, 
                          errorbar.height = 0.5,
                          lab.size = 1,
+                         axis.txt.size = 0.7,
                          xlab = "PM2.5") {
   plot.count <- 0
   grobs <- list()
@@ -194,7 +196,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
             axis.ticks.y=element_blank(),
             axis.title.y=element_blank(),
             axis.line.x = element_line(colour = "black", size = 0.5),
-            axis.text.x = element_text(colour = "black"),
+            axis.text.x = element_text(colour = "black", size = axis.txt.size),
             panel.grid.minor.y = element_blank(),
             panel.grid.major.y = element_blank(),
             panel.background = element_blank(),

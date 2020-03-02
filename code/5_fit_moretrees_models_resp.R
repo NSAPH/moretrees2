@@ -89,7 +89,27 @@ moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 save(moretrees_results, file = "../results/mod1_split35_northEast_resp.RData")
-rm(mod1)
+
+mod1_run2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
+                             W = NULL,
+                             y = rep(1, nrow(dt)),
+                             outcomes = dt$ccs_added_zeros,
+                             max_iter = 1E5,
+                             update_hyper_freq = 20,
+                             tr = tr, 
+                             initial_values = mod1$mod,
+                             method = "tree",
+                             nrestarts = 1,
+                             W_method = "shared",
+                             print_freq = 1,  
+                             get_ml = TRUE)
+
+# Delete g
+moretrees_results <- mod1_run2
+moretrees_results$mod$hyperparams$g_eta <- NULL
+moretrees_results$mod$hyperparams$eta <- NULL
+save(moretrees_results, file = "../results/mod1_split35_northEast_resp_run2.RData")
+# rm(mod1, mod1_run2)
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 set.seed(84359)
@@ -97,7 +117,7 @@ mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs_added_zeros,
-                             max_iter = 1E5,
+                             max_iter = 2E5,
                              update_hyper_freq = 20,
                              tr = tr, 
                              method = "tree",
