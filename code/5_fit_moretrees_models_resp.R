@@ -160,14 +160,14 @@ mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs_added_zeros,
-                             max_iter = 1E5,
+                             max_iter = 3E5,
                              update_hyper_freq = 20,
                              tr = tr, 
                              method = "tree",
                              nrestarts = 1,
                              W_method = "shared",
                              print_freq = 1,  
-                             get_ml = TRUE)
+                             get_ml = FALSE)
 
 # Delete g
 moretrees_results <- mod3
