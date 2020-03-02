@@ -108,6 +108,14 @@ mod1_run2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35
 moretrees_results <- mod1_run2
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, file = "../results/mod1_split35_northEast_resp_run2.RData")
 # rm(mod1, mod1_run2)
 
@@ -130,6 +138,14 @@ mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod2
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod2_split35_northEast_resp.RData")
 rm(mod2)
 
@@ -173,6 +189,14 @@ mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod3
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod3_split35_northEast_resp.RData")
 
 
