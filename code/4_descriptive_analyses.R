@@ -81,10 +81,10 @@ sink()
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
 
-# fake data
+# fake data for testing
 n <- 1000
-dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n)),
-                     pm25_lag01_control = abs(rnorm(n)),
+dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
                      ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Get labels for CVD
@@ -96,9 +96,13 @@ dt_cvd <- merge(dt_cvd, lvls_cvd,
                 by.x = "ccs_added_zeros", by.y = "lvl4_merge",
                 all.x = T, all.y = F)
 
+# Get plot data
+dt_cvd_plot <- dt_plot_fun(dt, lab_var = "ccs_lvl")
+
+# Make plot
 xlab <- expression("Mean "*PM[2.5]*" difference")
 pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_cvd, xlab = xlab, text.nudge = 5)
+nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 5, lab.size = 3)
 dev.off()
 
 # Get labels for RD
