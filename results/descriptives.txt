@@ -2,29 +2,91 @@ Total CVD admissions in study period =  7190123
 
 Total first admissions for CVD =  3383810
 
-Complete cases for CVD =  3372865 ( 99.67655 %)
+Complete cases for CVD =  3354364 ( 99.1298 %)
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00522   6.32555   9.41408  11.07548  14.01777 133.30443 
+  0.00522   6.32581   9.41379  11.07687  14.02108 133.30443 
 
 
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00764   6.30563   9.37202  11.04325  13.96834 122.66493 
+  0.00764   6.30573   9.37146  11.04421  13.97150 122.66493 
 
 
 Total respiratory admissions in study period =  3325108
 
 Total first admissions for respiratory disease =  1809639
 
-Complete cases for respiratory disease =  1802560 ( 99.60882 %)
+Complete cases for respiratory disease =  1788913 ( 98.85469 %)
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.01824   6.23624   9.24572  10.87862  13.74970 122.66493 
+  0.01824   6.23570   9.24413  10.87781  13.75122 122.66493 
 
 
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00979   6.20073   9.17174  10.78946  13.61566 122.53190 
+  0.00979   6.20130   9.17215  10.79192  13.62140 122.53190 
+
+
+Table 1 data------------------------------------------------------
+
+
+
+CVD:
+
+
+Sex:
+ dt_cvd$sex_gp       n   percent
+          Male 1452890 0.4331343
+        Female 1901474 0.5668657
+
+
+Age:
+ dt_cvd$age_gp       n   percent
+     74<Age<85 1335038 0.3980003
+     64<Age<75 1110884 0.3311757
+        Age>84  908442 0.2708239
+
+
+Race:
+ dt_cvd$race_gp       n    percent
+          White 2967548 0.88468276
+          Other  136108 0.04057640
+          Black  250708 0.07474085
+
+
+Medicaid:
+ dt_cvd$dual       n   percent
+           0 2860153 0.8526663
+           1  494211 0.1473337
+
+
+Respiratory disease:
+
+
+Sex:
+ dt_resp$sex_gp       n   percent
+           Male  771010 0.4309936
+         Female 1017903 0.5690064
+
+
+Age:
+ dt_resp$age_gp      n   percent
+      74<Age<85 688551 0.3848991
+      64<Age<75 502000 0.2806173
+         Age>84 598362 0.3344836
+
+
+Race:
+ dt_resp$race_gp       n    percent
+           White 1592590 0.89025570
+           Other   71724 0.04009362
+           Black  124599 0.06965068
+
+
+Medicaid:
+ dt_resp$dual       n   percent
+            0 1445306 0.8079241
+            1  343607 0.1920759

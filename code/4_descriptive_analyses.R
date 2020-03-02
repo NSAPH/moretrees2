@@ -9,8 +9,12 @@ require(moretrees)
 require(fst)
 
 # Relevant columns
-cols <- c("id", "adate", "ssa_state_cd",
-          "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control")
+cols.omit <- c("ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
+               "tmmx_lag01_case", "tmmx_lag01_control",
+               "rmax_lag01_case", "rmax_lag01_control")
+cols.other <- c("id", "adate", "ssa_state_cd",
+          "race_gp", "sex_gp", "age_gp", "dual")
+cols <- c(cols.other, cols.omit)
 
 # Select states
 states_list <- c(7, 20, 22, 30, 41,
@@ -46,7 +50,7 @@ n_cvd <- nrow(dt_cvd)
 cat("\n\nTotal first admissions for CVD = ", n_cvd)
 
 # CVD: keeping only complete cases
-dt_cvd <- na.omit(dt_cvd)
+dt_cvd <- na.omit(dt_cvd, cols = cols.omit)
 cat("\n\nComplete cases for CVD = ", nrow(dt_cvd), "(", 100 * nrow(dt_cvd) / n_cvd, "%)")
 
 # CVD: median PM2.5 exposure by case status
@@ -65,7 +69,7 @@ n_resp <- nrow(dt_resp)
 cat("\n\nTotal first admissions for respiratory disease = ", n_resp)
 
 # Respiratory: keeping only complete cases
-dt_resp <- na.omit(dt_resp)
+dt_resp <- na.omit(dt_resp, cols = cols.omit)
 cat("\n\nComplete cases for respiratory disease = ", nrow(dt_resp), "(", 100 * nrow(dt_resp) / n_resp, "%)")
 
 # Respiratory: median PM2.5 exposure by case status
@@ -74,10 +78,39 @@ summary(dt_resp$pm25_lag01_case)
 cat("\n\nPM2.5 summary for controls:\n")
 summary(dt_resp$pm25_lag01_control)
 
+# Table 1 data
+
+cat("\n\nTable 1 data------------------------------------------------------\n\n")
+
+cat("\n\nCVD:\n")
+
+cat("\n\nSex:\n")
+tabyl(dt_cvd$sex_gp)
+
+cat("\n\nAge:\n")
+tabyl(dt_cvd$age_gp)
+
+cat("\n\nRace:\n")
+tabyl(dt_cvd$race_gp)
+
+cat("\n\nMedicaid:\n")
+tabyl(dt_cvd$dual)
+
+cat("\n\nRespiratory disease:\n")
+
+cat("\n\nSex:\n")
+tabyl(dt_resp$sex_gp)
+
+cat("\n\nAge:\n")
+tabyl(dt_resp$age_gp)
+
+cat("\n\nRace:\n")
+tabyl(dt_resp$race_gp)
+
+cat("\n\nMedicaid:\n")
+tabyl(dt_resp$dual)
+
 sink()
-
-# Table 1 ------------------------------------------------------------------------------------------------------
-
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
 

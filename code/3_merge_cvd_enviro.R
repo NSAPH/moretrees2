@@ -10,6 +10,7 @@ library(fst)
 library(icd)
 library(stringr)
 library(readr)
+library(lubridate)
 
 admissions_path <- "../data/admissions_cvd/"
 enviro_path <- "../data/enviro/"
@@ -41,7 +42,8 @@ for (year_ in 2000:2014) {
   # NOTE: for now I am ignoring the fact that multiple hospitalizations may occur for same individual
   admissions <- read_fst(paste0("../data/admissions_cvd/admissions_cvd_", year_, ".fst"),
                         as.data.table = T, columns = c("id", "zip", "adate", 
-                                                       "ccs", "ccs_added_zeros", "ssa_state_cd"))
+                                                       "ccs", "ccs_added_zeros", "ssa_state_cd",
+                                                       "race_gp", "sex_gp", "age_gp", "dual"))
   
   # select control days (stratified on year, month, day of week)
   # get list of potential controls
