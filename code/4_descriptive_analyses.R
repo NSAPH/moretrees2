@@ -1,5 +1,6 @@
 # Make sure working directory is set to moretrees2/code
-setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
+setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
+source("./code/results_functions.R")
 
 # Check for updates on moretrees master branch
 # devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
@@ -18,22 +19,22 @@ states_list <- c(7, 20, 22, 30, 41,
 #                 "VT", "NJ", "NY", "PA")
 
 # Load respiratory data
-dt_resp <- read_fst("../data/merged_admissions_enviro/admissions_enviro_resp.fst",
-               as.data.table = T, 
-               columns = cols)
+dt_resp <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
+                    as.data.table = T, 
+                    columns = cols)
 # Keep only north east region
 dt_resp <- dt_resp[ssa_state_cd %in% states_list]
 
 # Load CVD data
-dt_cvd <- read_fst("../data/merged_admissions_enviro/admissions_enviro_cvd.fst",
-                    as.data.table = T, 
-                    columns = cols)
+dt_cvd <- read_fst("./data/merged_admissions_enviro/admissions_enviro_cvd.fst",
+                   as.data.table = T, 
+                   columns = cols)
 # Keep only north east region
 dt_cvd <- dt_cvd[ssa_state_cd %in% states_list]
 
 # Data in text -------------------------------------------------------------------------------------------------
 
-sink(file = "../results/descriptives.txt")
+sink(file = "./results/descriptives.txt")
 
 # CVD ---------------------------------------------------------
 cat("Total CVD admissions in study period = ", nrow(dt_cvd))
@@ -79,79 +80,39 @@ sink()
 
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
-require(ggplot2)
-require(moretrees)
-require(igraph)
-require(reshape2)
-require(stringr)
+
+# fake data
+n <- 1000
+dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n)),
+                     pm25_lag01_control = abs(rnorm(n)),
+                     ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Get labels for CVD
-ccs_labels <- read.csv("../data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
-ccs_labels$label <- paste0(ccs_labels$label, " (", ccs_labels$ccs, ")")
-tr_cvd <- ccs_tree("7")$tr
-lvls_cvd <- ego(tr_cvd, V(tr_cvd)[V(tr_cvd)$leaf], order = 10, mode = "in")
-lvls_cvd <- as.data.frame(t(sapply(lvls_cvd, function(x) rev(names(x)))))
-names(lvls_cvd) <- paste0("ccs_lvl", 1:4)
-lvls_cvd$lvl4_merge <- lvls_cvd$ccs_lvl4
-for (i in 1:4) {
-  col_i <- paste0("ccs_lvl", i)
-  lvls_cvd[ , col_i]  <- str_remove_all(lvls_cvd[ , col_i], "\\.0")
-  names(ccs_labels)[2] <- paste0("label", i)
-  lvls_cvd <- merge(lvls_cvd, ccs_labels, by.x = col_i, by.y = "ccs_code",
-                    all.x = T, all.y = F, sort = F)
-  
-}
-dt_cvd <- merge(dt_cvd, lvls_cvd[ , c("lvl4_merge", paste0("label", 1:4))], 
+lvls_cvd <- get_labels('7')
+plot_depth <- 3
+
+# Merge in labels
+dt_cvd <- merge(dt_cvd, lvls_cvd, 
                 by.x = "ccs_added_zeros", by.y = "lvl4_merge",
                 all.x = T, all.y = F)
 
-# Get mean difference in PM25 between case and control by disease
-mean.diff.log <- function(x , y) {
-  ttest <- t.test(log(x), log(y), paired = TRUE)
-  list(est = ttest$estimate, cil = ttest$conf.int[1], ciu = ttest$conf.int[2], n = length(x))
-}
-for (i in 1:3) {
-  dt_cvd[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), i) := mean.diff.log(pm25_lag01_case, pm25_lag01_control),
-         by = get(paste0("label", i))]
-}
-cvd_plot <- unique(dt_cvd[ , paste0(c("label", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:3, each = 5))])
-dt_cvd[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), rep(1:3, each = 3)) := NULL]
+xlab <- expression("Mean "*PM[2.5]*" difference")
+pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 6)
+nested_plots(dt_cvd, xlab = xlab, text.nudge = 5)
+dev.off()
 
-# Plot PM25 histograms ---------------------------------------------------
-cvd_hist <- ggplot(dt_cvd) + geom_density(aes(x = pm25_lag01_case)) + 
-  facet_wrap(label2 ~ ., ncol = 1) + theme_minimal() +
-  scale_x_continuous(trans = "log10", lim = c(1, max(dt_cvd$pm25_lag01_case)))
+# Get labels for RD
+lvls_resp <- get_labels('8')
 
-# Nested difference plots -------------------------------------------------------------
-require(gridExtra)
-plot.count <- 0
-grobs <- list()
-lims <- c(min(cvd_plot[ , paste0("cil_lvl", 1:3)]),
-          max(cvd_plot[ , paste0("ciu_lvl", 1:3)]))
-layout <- integer()
-for (i in 1:3) {
-  lab <- paste0("label", i)
-  xmin <- paste0("cil_lvl", i)
-  xmax <- paste0("ciu_lvl", i)
-  x <- paste0("est_lvl", i)
-  for (disease in unique(cvd_plot[ , get(lab)])) {
-    dat <- as.data.frame(cvd_plot[get(lab) == disease])
-    dat <- dat[ , c(x, xmin, xmax)]
-    dat <- unique(dat)
-    grob <- ggplot(dat) + 
-      geom_point(aes(x = get(x), y = 1)) +
-      geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), y = 1)) +
-      ggtitle(disease) + theme_minimal() + 
-      theme(axis.title.x = element_blank(), axis.title.y = element_blank(), axis.text.y = element_blank(), 
-            axis.ticks.y = element_blank(), axis.line.y = element_blank()) +
-      scale_x_continuous(limits = lims)
-    plot.count <- plot.count + 1
-    grobs[[plot.count]] <- grob
-    layout <- c(layout, rep(plot.count, times = sum(cvd_plot[ , get(lab)] == disease)))
-  }
-}
+# Merge in labels
+dt_resp <- merge(dt_resp, lvls_resp, 
+                by.x = "ccs_added_zeros", by.y = "lvl4_merge",
+                all.x = T, all.y = F)
 
-
+# Plot difference in PM25 between case and control by disease ----------------------------------
+pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 6)
+nested_plots(dt_cvd, xlab = xlab)
+dev.off()
 
 
 

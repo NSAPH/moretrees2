@@ -1,6 +1,9 @@
 require(moretrees)
 require(igraph)
 require(RColorBrewer)
+require(stringr)
+require(gridExtra)
+require(data.table)
 
 firstlower <- function(x) {
   substr(x, 1, 1) <- tolower(substr(x, 1, 1))
@@ -18,14 +21,16 @@ collapse_labels <- function(ccs_g) {
   return(ccs_labels)
 }
 
-ccs_table <- function(root, moretrees_results, digits = 3, mult = 10) {
+ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
+                      type = "moretrees") {
   
   ccs_lvls <- read.csv("./data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
   
   # Get ORs
-  k <- ncol(moretrees_results$mod$vi_params$mu[[1]])
+  k <- length(moretrees_results$mod$vi_params$mu[[1]])
   cols <- unlist(lapply(1:k, function(k) paste0(c("est", "cil", "ciu"), k)))
-  OR_est <- exp(moretrees_results$beta_moretrees[ , cols] * mult)
+  type <- paste0("beta_", type)
+  OR_est <- exp(moretrees_results[type][[1]][ , cols] * mult)
   OR_est$outcomes <- moretrees_results$beta_moretrees$outcomes
   
   # Map CCS codes to diseases --------------------------------------------------
@@ -66,9 +71,9 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10) {
     OR_est$short_label[g] <- collapse_labels(ccs_g)
     # Collapse OR and CI into one string
     for (j in 1:k) {
-      est_frmt <- sprintf(frmt, OR_est$est1[g])
-      cil_frmt <- sprintf(frmt, OR_est$cil1[g])
-      ciu_frmt <- sprintf(frmt, OR_est$ciu1[g])
+      est_frmt <- sprintf(frmt, OR_est[g, paste0("est", j)])
+      cil_frmt <- sprintf(frmt, OR_est[g, paste0("cil", j)])
+      ciu_frmt <- sprintf(frmt, OR_est[g, paste0("ciu", j)])
       OR_est[g, paste0("ci_est", j)] <- paste0(est_frmt," (",cil_frmt,", ",ciu_frmt,")")
     }
   }
@@ -79,8 +84,11 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10) {
 }
   
 ccs_plot <- function(root, moretrees_results,
-                     asp = 1/5, internal.size = 1,
-                     leaf.size = 2, ...) {
+                     asp = 1/5, internal.width = 0.1,
+                     leaf.width = 2, internal.height = 0.1,
+                     leaf.height = 16,
+                     label.dist = 3,
+                     label.cex = 0.3,...) {
   
   # Get tree
   tr <- ccs_tree(root)$tr
@@ -97,8 +105,10 @@ ccs_plot <- function(root, moretrees_results,
   groups <- V(tr)$group
   cols[groups == 0] <- "grey"
   groups[groups == 0] <- ""
-  vsize <- rep(internal.size, length(V(tr)))
-  vsize[V(tr)$leaf] <- leaf.size
+  vwidth <- rep(internal.width, length(V(tr)))
+  vwidth[V(tr)$leaf] <- leaf.width
+  vheight <- rep(internal.height, length(V(tr)))
+  vheight[V(tr)$leaf] <- leaf.height
   
   # Create legend
   cols2 <- data.frame(cols, groups)
@@ -112,15 +122,134 @@ ccs_plot <- function(root, moretrees_results,
   l <- layout_as_tree(tr)
   
   # Plot
-  plot.igraph(tr, layout = l, vertex.label = NA,
-              edge.arrow.size = 0,
-              vertex.size = vsize, vertex.color = cols, 
+  plot.igraph(tr, layout = l,
+              edge.arrow.size = 0, vertex.shape = "rectangle",
+              vertex.size = vwidth, vertex.size2 = vheight,
+              vertex.color = cols, 
               vertex.frame.color = cols,
+              vertex.label = groups,
+              vertex.label.dist = label.dist,
+              vertex.label.degree = pi/2,
+              vertex.label.family = "sans",
+              vertex.label.cex = label.cex,
+              vertex.label.color = "black",
               asp = asp)
   legend('bottom', legend = cols2$names,
-         pch = 19, pt.cex = 1, col = as.character(cols2$cols),
+         pch = 15, pt.cex = 1, col = as.character(cols2$cols),
          bty = "n", horiz = T, text.width = 0.2, cex = 0.5)
 
 }
 
+get_labels <- function(root) {
+  ccs_labels <- read.csv("./data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
+  ccs_labels$label <- paste0(ccs_labels$label, " (", ccs_labels$ccs, ")")
+  tr_cvd <- ccs_tree(root)$tr
+  lvls_cvd <- ego(tr_cvd, V(tr_cvd)[V(tr_cvd)$leaf], order = 10, mode = "in")
+  lvls_cvd <- as.data.frame(t(sapply(lvls_cvd, function(x) rev(names(x)))))
+  names(lvls_cvd) <- paste0("ccs_lvl", 1:4)
+  lvls_cvd$lvl4_merge <- lvls_cvd$ccs_lvl4
+  for (i in 1:4) {
+    col_i <- paste0("ccs_lvl", i)
+    lvls_cvd[ , col_i]  <- str_remove_all(lvls_cvd[ , col_i], "\\.0")
+    names(ccs_labels)[2] <- paste0("label", i)
+    lvls_cvd <- merge(lvls_cvd, ccs_labels, by.x = col_i, by.y = "ccs_code",
+                      all.x = T, all.y = F, sort = F)
+    
+  }
+  return(lvls_cvd)
+}
 
+mean.diff.log <- function(x , y) {
+  ttest <- t.test(log(x), log(y), paired = TRUE)
+  list(est = ttest$estimate, cil = ttest$conf.int[1], ciu = ttest$conf.int[2], n = length(x))
+}
+
+nested_plots <- function(dt, lab_var = "ccs_lvl", plot_depth = 3,
+                         digits = 1, text.nudge = 1.5, 
+                         errorbar.height = 0.5,
+                         xlab = "PM2.5") {
+  
+  for (i in 1:plot_depth) {
+    dt[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), i) := mean.diff.log(pm25_lag01_case, pm25_lag01_control),
+            by = get(paste0(lab_var, i))]
+    dt[ , paste0(lab_var, i) := paste0(get(paste0(lab_var, i)), " (n = ", get(paste0("n", i)), ")")]
+  }
+  dt_plot <- unique(dt[ , paste0(c(lab_var, "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:3, each = 5)), with = FALSE])
+  rm(dt)
+  
+  # Nested difference plots -------------------------------------------------------------
+  plot.count <- 0
+  grobs <- list()
+  lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
+            max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
+  x.grid <- round(max(abs(lims)) / 2, digits = digits)
+  layout <- integer()
+  xaxis.plt <- local({
+    dat <- data.table(x = c(-x.grid, x.grid), y = c(0, 0))
+    ggplot(dat) + geom_blank() +
+      theme(axis.line.y=element_blank(),
+            axis.text.y=element_blank(),
+            axis.ticks.y=element_blank(),
+            axis.title.y=element_blank(),
+            axis.line.x = element_line(colour = "black", size = 0.5),
+            axis.text.x = element_text(colour = "black"),
+            panel.grid.minor.y = element_blank(),
+            panel.grid.major.y = element_blank(),
+            panel.background = element_blank(),
+            plot.margin = margin(t = 0, r = 0, b = 0.1,l = 0, "cm")) +
+      xlab(xlab) +
+      scale_x_continuous(limits = c(lims[1] - text.nudge, 
+                                    lims[2]),
+                         breaks = c(-x.grid, 0, x.grid))
+
+  })
+  for (i in 1:plot_depth) {
+    lab <- paste0(lab_var, i)
+    for (disease in unique(dt_plot[ , get(lab)])) {
+      plot.count <- plot.count + 1
+      y.times <- sum(dt_plot[ , get(lab)] == disease)
+      layout <- c(layout, rep(plot.count, times = y.times))
+      grobs[[plot.count]] <- local({
+        y.min <- 0
+        y.max <- y.times
+        y.height <- y.times / 2
+        i <- i
+        lab <- lab
+        xmin <- paste0("cil_lvl", i)
+        xmax <- paste0("ciu_lvl", i)
+        x <- paste0("est_lvl", i)
+        dat <- as.data.frame(dt_plot[get(lab) == disease])
+        dat <- dat[ , c(x, xmin, xmax)]
+        dat <- unique(dat)
+        dat$disease <- disease
+        grob <- ggplot(dat) + 
+          geom_vline(xintercept = 0, color = "red") +
+          geom_vline(xintercept = -x.grid, color = "grey80",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid, color = "grey80",
+                     lwd = 0.2, lty = 2) +
+          geom_point(aes(x = get(x), y = y.height)) +
+          geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
+                             y = y.height), height = errorbar.height) +
+          geom_text(aes(label = disease, 
+                        x = lims[1] - text.nudge, 
+                        y = y.height),
+                    hjust = 0) +
+          theme_void() +
+          theme(panel.border = 
+                  element_rect(colour = "black", fill = NA, size = 0.1)) +
+          scale_x_continuous(limits = 
+                               c(lims[1] - text.nudge, 
+                                 lims[2])) + 
+          scale_y_continuous(limits = c(y.min, y.max))
+        grob
+      })
+    }
+    plot.count <- plot.count + 1
+    grobs[[plot.count]] <- xaxis.plt
+    layout <- c(layout, plot.count)
+  }
+  layout_matrix <- matrix(layout, ncol = plot_depth)
+  grid.arrange(grobs = grobs, layout_matrix = layout_matrix, 
+               padding = unit(0, "line"))
+}
