@@ -81,11 +81,11 @@ sink()
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
 
-# fake data for testing
-n <- 1000
-dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
-                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
-                     ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
+# # fake data for testing
+# n <- 1000
+# dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+#                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+#                      ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Get labels for CVD
 lvls_cvd <- get_labels('7')
@@ -94,15 +94,16 @@ plot_depth <- 3
 # Merge in labels
 dt_cvd <- merge(dt_cvd, lvls_cvd, 
                 by.x = "ccs_added_zeros", by.y = "lvl4_merge",
-                all.x = T, all.y = F)
+                all.x = T, all.y = F, sort = FALSE)
+dt_cvd <- dt_cvd[order(match(ccs_added_zeros, lvls_cvd$lvl4_merge))]
 
 # Get plot data
-dt_cvd_plot <- dt_plot_fun(dt, lab_var = "ccs_lvl")
+dt_cvd_plot <- dt_plot_fun(dt_cvd, lab_var = "ccs_lvl")
 
 # Make plot
 xlab <- expression("Mean "*PM[2.5]*" difference")
 pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 5, lab.size = 3)
+nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 0.1, lab.size = 3, digits = 2, axis.txt.size = 5)
 dev.off()
 
 # Get labels for RD
@@ -111,11 +112,15 @@ lvls_resp <- get_labels('8')
 # Merge in labels
 dt_resp <- merge(dt_resp, lvls_resp, 
                 by.x = "ccs_added_zeros", by.y = "lvl4_merge",
-                all.x = T, all.y = F)
+                all.x = T, all.y = F, sort = F)
+dt_resp <- dt_resp[order(match(ccs_added_zeros, lvls_resp$lvl4_merge))]
+
+# Get plot data
+dt_resp_plot <- dt_plot_fun(dt_resp, lab_var = "ccs_lvl")
 
 # Plot difference in PM25 between case and control by disease ----------------------------------
 pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_cvd, xlab = xlab)
+nested_plots(dt_resp_plot, xlab = xlab, lab.nudge = 0.15, lab.size = 3, digits = 2, axis.txt.size = 7)
 dev.off()
 
 
