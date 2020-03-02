@@ -14,7 +14,7 @@ states_list <- c(7, 20, 22, 30, 41,
 #                 "VT", "NJ", "NY", "PA")
 
 # Load data
-dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro.fst",
+dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro_cvd.fst",
                as.data.table = T, 
                columns = c("id", "adate", "ssa_state_cd",
                            "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
@@ -80,6 +80,14 @@ mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, file = "../results/mod1_split35_northEast.RData")
 rm(mod1)
 
@@ -102,6 +110,14 @@ mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod2
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod2_split35_northEast.RData")
 rm(mod2)
 
@@ -145,6 +161,14 @@ mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod3
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
+
+# Get obs counts by group
+obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
+                     function(out, dat) sum(dat %in% out),
+                     dat = dt$ccs_added_zeros)
+moretrees_results$beta_moretrees$n_obs <- obs_counts
+
+# save
 save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod3_split35_northEast.RData")
 
 
