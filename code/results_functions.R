@@ -164,20 +164,22 @@ mean.diff.log <- function(x , y) {
   list(est = ttest$estimate, cil = ttest$conf.int[1], ciu = ttest$conf.int[2], n = length(x))
 }
 
-nested_plots <- function(dt, lab_var = "ccs_lvl", plot_depth = 3,
-                         digits = 1, text.nudge = 1.5, 
-                         errorbar.height = 0.5,
-                         xlab = "PM2.5") {
-  
+dt_plot_fun <- function(dt, lab_var = "ccs_lvl", plot_depth = 3) {
   for (i in 1:plot_depth) {
     dt[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), i) := mean.diff.log(pm25_lag01_case, pm25_lag01_control),
-            by = get(paste0(lab_var, i))]
-    dt[ , paste0(lab_var, i) := paste0(get(paste0(lab_var, i)), " (n = ", get(paste0("n", i)), ")")]
+        by = get(paste0(lab_var, i))]
+    dt[ , paste0("pltlab", i) := paste0(get(paste0(lab_var, i)), " (n = ", get(paste0("n", i)), ")")]
   }
-  dt_plot <- unique(dt[ , paste0(c(lab_var, "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:3, each = 5)), with = FALSE])
-  rm(dt)
-  
-  # Nested difference plots -------------------------------------------------------------
+  dt_plot <- unique(dt[ , paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:plot_depth, each = 5)), with = FALSE])
+  dt[ , paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:plot_depth, each = 5)) := NULL]
+  return(dt_plot)
+}
+
+nested_plots <- function(dt_plot, plot_depth = 3,
+                         digits = 1, lab.nudge = 1.5, 
+                         errorbar.height = 0.5,
+                         lab.size = 1,
+                         xlab = "PM2.5") {
   plot.count <- 0
   grobs <- list()
   lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
@@ -198,13 +200,13 @@ nested_plots <- function(dt, lab_var = "ccs_lvl", plot_depth = 3,
             panel.background = element_blank(),
             plot.margin = margin(t = 0, r = 0, b = 0.1,l = 0, "cm")) +
       xlab(xlab) +
-      scale_x_continuous(limits = c(lims[1] - text.nudge, 
+      scale_x_continuous(limits = c(lims[1] - lab.nudge, 
                                     lims[2]),
                          breaks = c(-x.grid, 0, x.grid))
 
   })
   for (i in 1:plot_depth) {
-    lab <- paste0(lab_var, i)
+    lab <- paste0("pltlab", i)
     for (disease in unique(dt_plot[ , get(lab)])) {
       plot.count <- plot.count + 1
       y.times <- sum(dt_plot[ , get(lab)] == disease)
@@ -232,14 +234,14 @@ nested_plots <- function(dt, lab_var = "ccs_lvl", plot_depth = 3,
           geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
                              y = y.height), height = errorbar.height) +
           geom_text(aes(label = disease, 
-                        x = lims[1] - text.nudge, 
+                        x = lims[1] - lab.nudge, 
                         y = y.height),
-                    hjust = 0) +
+                    hjust = 0, size = lab.size) +
           theme_void() +
           theme(panel.border = 
                   element_rect(colour = "black", fill = NA, size = 0.1)) +
           scale_x_continuous(limits = 
-                               c(lims[1] - text.nudge, 
+                               c(lims[1] - lab.nudge, 
                                  lims[2])) + 
           scale_y_continuous(limits = c(y.min, y.max))
         grob
