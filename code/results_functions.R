@@ -23,24 +23,29 @@ collapse_labels <- function(ccs_g) {
 }
 
 ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
-                      type = "moretrees") {
+                      type = "moretrees", tr = NULL) {
   
   ccs_lvls <- read.csv("./data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
   
   # Get ORs
   k <- length(moretrees_results$mod$vi_params$mu[[1]])
   cols <- unlist(lapply(1:k, function(k) paste0(c("est", "cil", "ciu"), k)))
-  type <- paste0("beta_", type)
-  OR_est <- exp(moretrees_results[type][[1]][ , cols] * mult)
+  beta_type <- paste0("beta_", type)
+  OR_est <- exp(moretrees_results[beta_type][[1]][ , cols] * mult)
   OR_est$outcomes <- moretrees_results$beta_moretrees$outcomes
+  vids <- unlist(OR_est$outcomes)
   
   # Map CCS codes to diseases --------------------------------------------------
-  tr <- ccs_tree(root)
-  ccs_icd9_mapping <- tr$ccs_icd_mapping
-  tr <- tr$tr
+  ccs_tr <- ccs_tree(root)
+  ccs_icd9_mapping <- ccs_tr$ccs_icd_mapping
   ccs_zeros <- ccs_icd9_mapping[, c("ccs_original", "ccs_added_zeros")]
   ccs_zeros <- ccs_zeros[!duplicated(ccs_zeros), ]
   ccs <- merge(ccs_zeros, ccs_lvls, by.x = "ccs_original", by.y = "ccs_code", sort = F)
+  
+  # Get tree if necessary ------------------------------------------------------
+  if (is.null(tr)) tr <- ccs_tr$tr
+  ccs <- ccs[ccs$ccs_added_zeros %in% names(V(tr)), ]
+  ccs <- ccs[order(match(ccs$ccs_added_zeros, names(V(tr)))), ]
   
   # Map outcome groups to disease names -----------------------------------------
   frmt <- paste0("%.", digits, "f")
@@ -60,7 +65,8 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
                         nodes = parent, mode = "out")[[1]])
       if (sum(sibs %in% ccs_g$ccs_added_zeros) == length(sibs)) {
         ccs_g$ccs_added_zeros[i] <- parent
-        ccs_g$ccs_original[i] <- str_remove_all(parent, "\\.0")
+        parent <- str_remove_all(parent, "\\.0")
+        ccs_g$ccs_original[i] <- parent
         ccs_g$label[i] <- ccs_lvls$label[ccs_lvls$ccs_code == parent]
         ccs_g <- ccs_g[!(ccs_g$ccs_added_zeros %in% setdiff(sibs, code)), ]
         i <- 1
@@ -79,12 +85,12 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
     }
   }
   OR_est$n_outcomes <- sapply(OR_est$outcomes, length)
-  OR_est$root <- 1:nrow(OR_est)
+  OR_est$group <- 1:nrow(OR_est)
   
-  return(OR_est[ , c("root", "short_label", "long_label", "n_outcomes", paste0("ci_est", 1:k))])
+  return(OR_est[ , c("group", "short_label", "long_label", "n_outcomes", paste0("ci_est", 1:k))])
 }
   
-ccs_plot <- function(root, moretrees_results,
+ccs_plot <- function(root, moretrees_results, tr = NULL,
                      asp = 1/5, internal.width = 0.1,
                      leaf.width = 2, internal.height = 0.1,
                      leaf.height = 16,
@@ -92,7 +98,7 @@ ccs_plot <- function(root, moretrees_results,
                      label.cex = 0.3,...) {
   
   # Get tree
-  tr <- ccs_tree(root)$tr
+  if(is.null(tr)) tr <- ccs_tree(root)$tr
   
   # Assign groups to tree
   outcomes <- moretrees_results$beta_moretrees$outcomes
