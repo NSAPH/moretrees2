@@ -89,13 +89,58 @@ moretrees_results$beta_moretrees$n_obs <- obs_counts
 
 # save
 save(moretrees_results, file = "../results/mod1_split35_northEast.RData")
-rm(mod1)
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
+# get starting vals based on mod1
+mod2_init <- mod1$mod
+dsgn <- moretrees:::moretrees_design_tree(y = rep(1, n), X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
+                                          W = as.matrix(dt[ , c("tmmx", "rmax")]),
+                                          outcomes = dt$ccs_added_zeros, tr = tr)
+pL <- sum(V(tr)$leaf)
+p <- length(V(tr))
+m <- ncol(dsgn$W)
+n <- nrow(dt)
+mod2_init$hyperparams$g_eta <- c(mod2_init$hyperparams$g_eta, mean(mod2_init$hyperparams$g_eta))
+mod2_init$hyperparams$omega <- mod2_init$hyperparams$tau
+mod2_init$vi_params$delta <-lapply(1:p, function(i) matrix(0, nrow = m, ncol = 1))
+xi <- mapply(`*`, mod2_init$vi_params$prob, mod2_init$vi_params$mu, SIMPLIFY = F)
+Xbeta <- numeric(n) + 0
+wwT <- moretrees:::rowOuterProds(dsgn$W)
+for (u in 1:pL) {
+  beta_u <- Reduce(`+`, xi[dsgn$ancestors[[u]]])
+  Xbeta[dsgn$outcomes_units[[u]]] <- dsgn$X[dsgn$outcomes_units[[u]], 
+                                  ] %*% beta_u
+}
+wwT_g_eta <- lapply(X = dsgn$outcomes_units, FUN = moretrees:::xxT_g_eta_fun, 
+                    xxT = wwT, g_eta = mod2_init$hyperparams$g_eta, K = m)
+for (v in 1:p) {
+  leaf_descendants <- dsgn$outcomes_nodes[[v]]
+  mod2_init$vi_params$Omega_inv[[v]] <- 2 * Reduce(`+`, wwT_g_eta[leaf_descendants]) + 
+    diag(1/mod2_init$hyperparams$omega, nrow = m)
+  mod2_init$vi_params$Omega[[v]] <- solve(mod2_init$vi_params$Omega_inv[[v]])
+  mod2_init$vi_params$Omega_det[v] <- det(mod2_init$vi_params$Omega[[v]])
+  mod2_init$vi_params$delta[[v]] <- mod2_init$vi_params$delta[[v]] * 0
+  for (u in dsgn$leaf_descendants) {
+    anc_u_mv <- setdiff(dsgn$ancestors[[u]], v)
+    units_u <- dsgn$outcomes_units[[u]]
+    theta_u_mv <- Reduce(`+`, mod2_init$vi_params$delta[anc_u_mv])
+    mod2_init$vi_params$delta[[v]] <- mod2_init$vi_params$delta[[v]] + crossprod(W[units_u, 
+                                           , drop = FALSE], (y[units_u]/2 - 2 * g_eta[units_u] * 
+                                                               (dsgn$W[units_u, , drop = FALSE] %*% theta_u_mv + 
+                                                                  Xbeta[units_u])))
+  }
+  mod2_init$vi_params$delta[[v]] <- mod2_init$vi_params$Omega[[v]] %*% mod2_init$vi_params$delta[[v]]
+}
+
+mod2_init$hyperparams <- moretrees:::update_hyperparams_logistic_moretrees(X = dsgn$X, W = dsgn$W, y = dsgn$y, outcomes_units = dsgn$outcomes_units, ancestors = dsgn$ancestors, n = n, K = 2, p = p, m = m, prob = mod2_init$vi_params$prob, mu = mod2_init$vi_params$mu, Sigma = mod2_init$vi_params$Sigma, Sigma_det = mod2_init$vi_params$Sigma_det, tau_t = mod2_init$vi_params$tau_t, delta = mod2_init$vi_params$delta, Omega = mod2_init$vi_params$Omega, Omega_det = mod2_init$vi_params$Omega_det, a_rho = mod2_init$vi_params$a_rho, b_rho = mod2_init$vi_params$b_rho, omega = mod2_init$hyperparams$omega, tau = mod2_init$hyperparams$tau, model = "moretrees", update_hyper = T)
+
+require(gdata)
+keep(dt, mod2_init, tr, sd_tmmx, sd_rmax)
 set.seed(987234)
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
+                             y = rep(1, nrow(dt)), 
+                             initial_values = mod2_init,
                              outcomes = dt$ccs_added_zeros,
                              max_iter = 1E5,
                              update_hyper_freq = 20,
@@ -118,8 +163,7 @@ obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
 moretrees_results$beta_moretrees$n_obs <- obs_counts
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod2_split35_northEast.RData")
-rm(mod2)
+save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod2_split35_northEast_attempt2.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
