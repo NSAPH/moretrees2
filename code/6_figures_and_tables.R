@@ -9,13 +9,15 @@ load(file = "./results/mod1_split35_northEast.Rdata")
 OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
                     digits = 3, mult = 10)
 OR_est$long_label <- NULL
+OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
 require(xtable)
 row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.8cm}", "c", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", "$n_{out}$", 
-                      "RR below $35 \\mu g m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g m^{-3}$ (95\\%CI)")
+OR_xtable <- xtable(OR_est, align = c("l", "l", "p{7.2cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
+                    digits = 3, display = c("d", "d", "s", "d", "f", "f", "f"))
+names(OR_xtable) <- c("Group", "CCS codes", 
+                      "$n_{out}$", "$n_{obs}$",
+                      "RR below $35 \\mu g \cdot m^{-3}$ (95\\%CI)",
+                      "RR above $35 \\mu g \cdot m^{-3}$ (95\\%CI)")
 
 write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
             sanitize.text.function = function(x) x),
@@ -28,12 +30,13 @@ OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
 OR_est$short_label <- NULL
 OR_est$long_label <- NULL
 OR_est$n_outcomes <- NULL
+OR_est$n_obs <- NULL
 row.names(OR_est) <- NULL
 OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
                     digits = 3, display = c("d", "d", "f", "f"))
 names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g m^{-3}$ (95\\%CI)")
+                      "RR below $35 \\mu g \cdot m^{-3}$ (95\\%CI)",
+                      "RR above $35 \\mu g \cdot m^{-3}$ (95\\%CI)")
 
 write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
             sanitize.text.function = function(x) x),
@@ -65,11 +68,13 @@ OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
 OR_est$long_label <- NULL
 require(xtable)
 row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.8cm}", "c", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", "$n_{out}$", 
-                      "RR below $35 \\mu g m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g m^{-3}$ (95\\%CI)")
+OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
+OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.6cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
+                    digits = 3, display = c("d", "d", "s", "d", "d", "f", "f"))
+names(OR_xtable) <- c("Group", "CCS codes", 
+                      "$n_{out}$", "$n_{obs}$",
+                      "RR below $35 \\mu g \cdot m^{-3}$ (95\\%CI)",
+                      "RR above $35 \\mu g \cdot m^{-3}$ (95\\%CI)")
 
 write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
             sanitize.text.function = function(x) x),
@@ -82,12 +87,13 @@ OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
 OR_est$short_label <- NULL
 OR_est$long_label <- NULL
 OR_est$n_outcomes <- NULL
+OR_est$n_obs <- NULL
 row.names(OR_est) <- NULL
 OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
                     digits = 3, display = c("d", "d", "f", "f"))
 names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g m^{-3}$ (95\\%CI)")
+                      "RR below $35 \\mu g \cdot m^{-3}$ (95\\%CI)",
+                      "RR above $35 \\mu g \cdot m^{-3}$ (95\\%CI)")
 
 write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
             sanitize.text.function = function(x) x),

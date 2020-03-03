@@ -33,6 +33,7 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   beta_type <- paste0("beta_", type)
   OR_est <- exp(moretrees_results[beta_type][[1]][ , cols] * mult)
   OR_est$outcomes <- moretrees_results$beta_moretrees$outcomes
+  OR_est$n_obs <- moretrees_results$beta_moretrees$n_obs
   vids <- unlist(OR_est$outcomes)
   
   # Map CCS codes to diseases --------------------------------------------------
@@ -87,7 +88,8 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   OR_est$n_outcomes <- sapply(OR_est$outcomes, length)
   OR_est$group <- 1:nrow(OR_est)
   
-  return(OR_est[ , c("group", "short_label", "long_label", "n_outcomes", paste0("ci_est", 1:k))])
+  return(OR_est[ , c("group", "short_label", "long_label",
+                     "n_outcomes", "n_obs", paste0("ci_est", 1:k))])
 }
   
 ccs_plot <- function(root, moretrees_results, tr = NULL,
