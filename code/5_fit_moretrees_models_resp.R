@@ -1,5 +1,5 @@
 # Make sure working directory is set to moretrees2/code
-setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
+setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
 # Check for updates on moretrees master branch
 # devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
@@ -14,7 +14,7 @@ states_list <- c(7, 20, 22, 30, 41,
 #                 "VT", "NJ", "NY", "PA")
 
 # Load data
-dt <- read_fst("../data/merged_admissions_enviro/admissions_enviro_resp.fst",
+dt <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                as.data.table = T, 
                columns = c("id", "adate", "ssa_state_cd",
                            "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
@@ -88,7 +88,7 @@ mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]),
 moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
-save(moretrees_results, file = "../results/mod1_split35_northEast_resp.RData")
+save(moretrees_results, file = "./results/mod1_split35_northEast_resp.RData")
 
 mod1_run2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = NULL,
@@ -116,16 +116,16 @@ obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
 moretrees_results$beta_moretrees$n_obs <- obs_counts
 
 # save
-save(moretrees_results, file = "../results/mod1_split35_northEast_resp_run2.RData")
+save(moretrees_results, file = "./results/mod1_split35_northEast_resp_run2.RData")
 # rm(mod1, mod1_run2)
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
-set.seed(84359)
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)),
+                             initial_values = mod1_run2$mod,
                              outcomes = dt$ccs_added_zeros,
-                             max_iter = 2E5,
+                             max_iter = 1E5,
                              update_hyper_freq = 20,
                              tr = tr, 
                              method = "tree",
@@ -139,15 +139,8 @@ moretrees_results <- mod2
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
-# Get obs counts by group
-obs_counts <- sapply(moretrees_results$beta_moretrees$outcomes,
-                     function(out, dat) sum(dat %in% out),
-                     dat = dt$ccs_added_zeros)
-moretrees_results$beta_moretrees$n_obs <- obs_counts
-
 # save
 save(moretrees_results, sd_tmmx, sd_rmax, file = "../results/mod2_split35_northEast_resp.RData")
-rm(mod2)
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -170,11 +163,11 @@ dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_
 
 
 # Run model
-set.seed(623950)
 W_cols <- c(paste0("tmmx_spl", 1:df), paste0("rmax_spl", 1:df))
 mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
                              y = rep(1, nrow(dt)),
+                             initial_values = mod2$mod,
                              outcomes = dt$ccs_added_zeros,
                              max_iter = 3E5,
                              update_hyper_freq = 20,
