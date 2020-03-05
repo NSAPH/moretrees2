@@ -7,12 +7,6 @@ require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
 
-# Select states
-states_list <- c(7, 20, 22, 30, 41,
-                 47, 31, 33, 39)
-# states_list <- c("CT", "ME", "MA", "NH", "RI", 
-#                 "VT", "NJ", "NY", "PA")
-
 # Load data
 dt <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                as.data.table = T, 
@@ -21,15 +15,12 @@ dt <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                            "tmmx_lag01_case", "tmmx_lag01_control",
                            "rmax_lag01_case", "rmax_lag01_control"))
 
-# Keep only north east region
-dt <- dt[ssa_state_cd %in% states_list]
-
 # First admission only
 dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
 
 # Split pm2.5 into above and below EPA threshold
-split_val <- 25
+split_val <- 35
 dt[ , pm25_blw_case := ifelse(pm25_lag01_case <= split_val, pm25_lag01_case, 0)]
 dt[ , pm25_abv_case := ifelse(pm25_lag01_case > split_val, pm25_lag01_case, 0)]
 dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
@@ -90,7 +81,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # Save
-save(moretrees_results, file = "./results/mod1_split25_northEast_resp.RData")
+save(moretrees_results, file = "./results/mod1_split35_all_resp.RData")
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
@@ -113,7 +104,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split35_all_resp.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -168,6 +159,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split35_all_resp.RData")
 
 

@@ -29,7 +29,7 @@ dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
 
 # Split pm2.5 into above and below EPA threshold
-split_val <- 25
+split_val <- 35
 dt[ , pm25_blw_case := ifelse(pm25_lag01_case <= split_val, pm25_lag01_case, 0)]
 dt[ , pm25_abv_case := ifelse(pm25_lag01_case > split_val, pm25_lag01_case, 0)]
 dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
@@ -90,7 +90,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # Save
-save(moretrees_results, file = "./results/mod1_split25_northEast_resp.RData")
+save(moretrees_results, file = "./results/mod1_split35_northEast_resp.RData")
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
@@ -113,7 +113,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split35_northEast_resp.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -168,6 +168,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split35_northEast_resp.RData")
 
 

@@ -2,7 +2,7 @@
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
 # Check for updates on moretrees master branch
-# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
+# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel",)
 require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
@@ -14,7 +14,7 @@ states_list <- c(7, 20, 22, 30, 41,
 #                 "VT", "NJ", "NY", "PA")
 
 # Load data
-dt <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
+dt <- read_fst("./data/merged_admissions_enviro/admissions_enviro_cvd.fst",
                as.data.table = T, 
                columns = c("id", "adate", "ssa_state_cd",
                            "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
@@ -29,7 +29,7 @@ dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
 
 # Split pm2.5 into above and below EPA threshold
-split_val <- 25
+split_val <- 35
 dt[ , pm25_blw_case := ifelse(pm25_lag01_case <= split_val, pm25_lag01_case, 0)]
 dt[ , pm25_abv_case := ifelse(pm25_lag01_case > split_val, pm25_lag01_case, 0)]
 dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
@@ -57,17 +57,9 @@ dt <- na.omit(dt)
 # Get tree
 require(magrittr)
 require(igraph)
-tr <- moretrees::ccs_tree("8")$tr 
+tr <- moretrees::ccs_tree("7")$tr 
 
 # check all outcome codes are leaves of tree
-setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
-
-# Some leaves are not outcomes, so take subtree
-vids <- unique(dt$ccs_added_zeros)
-vids <- ego(tr, order = 100, nodes = vids, mode = "in")
-vids <- Reduce(union, vids)
-tr <- induced_subgraph(graph = tr, vids = vids)
-# check again
 setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
 # Model 1: no covariate control ------------------------------------------------------------------------------------------
@@ -89,13 +81,13 @@ moretrees_results <- mod1
 moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
-# Save
-save(moretrees_results, file = "./results/mod1_split25_northEast_resp.RData")
+# save
+save(moretrees_results, file = "./results/mod1_split35_northEast_cvd.RData")
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
-                             y = rep(1, nrow(dt)),
+                             y = rep(1, nrow(dt)), 
                              initial_values = mod1$mod,
                              outcomes = dt$ccs_added_zeros,
                              max_iter = 1E5,
@@ -113,7 +105,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split35_northEast_cvd.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -131,7 +123,7 @@ tmmx_knots <- quantile(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")])
 tmmx_internal_knots <- tmmx_knots[2:(length(tmmx_knots) - 1)]
 tmmx_boundary_knots <- c(tmmx_knots[1], tmmx_knots[length(tmmx_knots)])
 dt[ , paste0("tmmx_spl", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots)
-                          - ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+                                                          - ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
 
 # Get splines for humidity
 sd_rmax <- sd(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]))
@@ -141,7 +133,7 @@ rmax_knots <- quantile(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")])
 rmax_internal_knots <- rmax_knots[2:(length(rmax_knots) - 1)]
 rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
 dt[ , paste0("rmax_spl", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots)
-                        - ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
+                                                          - ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
 
 # Remove unnecessary columns to save memory
 dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control") := NULL]
@@ -168,6 +160,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split25_northEast_resp.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split35_northEast_cvd.RData")
 
 

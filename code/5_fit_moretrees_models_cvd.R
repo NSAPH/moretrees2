@@ -29,14 +29,15 @@ dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
 
 # Split pm2.5 into above and below EPA threshold
-dt[ , pm25_blw35_case := ifelse(pm25_lag01_case <= 35, pm25_lag01_case, 0)]
-dt[ , pm25_abv35_case := ifelse(pm25_lag01_case > 35, pm25_lag01_case, 0)]
-dt[ , pm25_blw35_control := ifelse(pm25_lag01_control <= 35, pm25_lag01_control, 0)]
-dt[ , pm25_abv35_control := ifelse(pm25_lag01_control > 35, pm25_lag01_control, 0)]
+split_val <- 25
+dt[ , pm25_blw_case := ifelse(pm25_lag01_case <= split_val, pm25_lag01_case, 0)]
+dt[ , pm25_abv_case := ifelse(pm25_lag01_case > split_val, pm25_lag01_case, 0)]
+dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
+dt[ , pm25_abv_control := ifelse(pm25_lag01_control > split_val, pm25_lag01_control, 0)]
 
 # Get difference between case and control
-dt[ , pm25_blw35 := pm25_blw35_case - pm25_blw35_control]
-dt[ , pm25_abv35 := pm25_abv35_case - pm25_abv35_control]
+dt[ , pm25_blw := pm25_blw_case - pm25_blw_control]
+dt[ , pm25_abv := pm25_abv_case - pm25_abv_control]
 dt[ , tmmx := tmmx_lag01_case - tmmx_lag01_control]
 dt[ , rmax := rmax_lag01_case - rmax_lag01_control]
 
@@ -48,7 +49,7 @@ dt[ , rmax := rmax / sd_rmax]
 
 # Remove unnecessary variables
 dt[ , c("id", "adate", "ssa_state_cd", "pm25_lag01_case", "pm25_lag01_control",
-        "pm25_blw35_case", "pm25_abv35_case", "pm25_blw35_control", "pm25_abv35_control") := NULL]
+        "pm25_blw_case", "pm25_abv_case", "pm25_blw_control", "pm25_abv_control") := NULL]
 
 # Remove NA rows (moretrees doesn't do this automatically)
 dt <- na.omit(dt)
@@ -56,14 +57,13 @@ dt <- na.omit(dt)
 # Get tree
 require(magrittr)
 require(igraph)
-tr <- moretrees::ccs_tree("7")$tr # note: we have an error here.
+tr <- moretrees::ccs_tree("7")$tr 
 
 # check all outcome codes are leaves of tree
-sum(!(dt$ccs_added_zeros %in% names(V(tr))[V(tr)$leaf])) == 0
+setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
 # Model 1: no covariate control ------------------------------------------------------------------------------------------
-set.seed(34564)
-mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
+mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
                              W = NULL,
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs_added_zeros,
@@ -82,10 +82,10 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = "./results/mod1_split35_northEast_cvd.RData")
+save(moretrees_results, file = "./results/mod1_split25_northEast_cvd.RData")
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
-mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
+mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)), 
                              initial_values = mod1$mod,
@@ -105,30 +105,42 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split35_northEast_cvd_attempt2.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split25_northEast_cvd.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
-# Make splines
+# spline parameters
 require(splines)
 require(data.table)
-df <- 3
-cols <- c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control")
-for (col in cols) {
-  dt[ , paste0(col, "_spl", 1:df) := data.table(ns(get(col), df = df))]
-}
-for (i in 1:df) {
-  dt[ , paste0("tmmx_spl", i) := get(paste0("tmmx_lag01_case_spl", i)) - get(paste0("tmmx_lag01_control_spl", i))]
-  dt[ , paste0("rmax_spl", i) := get(paste0("rmax_lag01_case_spl", i)) - get(paste0("rmax_lag01_control_spl", i))]
-}
+nknots <- 2
+q <- seq(0, 1, length.out = nknots + 2)
+
+# Get splines for temperature
+sd_tmmx <- sd(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]))
+dt[ , tmmx_lag01_case := tmmx_lag01_case / sd_tmmx]
+dt[ , tmmx_lag01_control := tmmx_lag01_control / sd_tmmx]
+tmmx_knots <- quantile(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]), probs = q)
+tmmx_internal_knots <- tmmx_knots[2:(length(tmmx_knots) - 1)]
+tmmx_boundary_knots <- c(tmmx_knots[1], tmmx_knots[length(tmmx_knots)])
+dt[ , paste0("tmmx_spl", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots)
+                                                          - ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+
+# Get splines for humidity
+sd_rmax <- sd(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]))
+dt[ , rmax_lag01_case := rmax_lag01_case / sd_rmax]
+dt[ , rmax_lag01_control := rmax_lag01_control / sd_rmax]
+rmax_knots <- quantile(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), probs = q)
+rmax_internal_knots <- rmax_knots[2:(length(rmax_knots) - 1)]
+rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
+dt[ , paste0("rmax_spl", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots)
+                                                          - ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
 
 # Remove unnecessary columns to save memory
-dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control",
-        sapply(cols, function(col) paste0(col, "_spl", 1:df))) := NULL]
+dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control") := NULL]
 
 # Run model
-W_cols <- c(paste0("tmmx_spl", 1:df), paste0("rmax_spl", 1:df))
-mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw35", "pm25_abv35")]), 
+W_cols <- c(paste0("tmmx_spl", 1:(nknots + 1)), paste0("rmax_spl", 1:(nknots + 1)))
+mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
                              y = rep(1, nrow(dt)),
                              initial_values = mod2$mod,
@@ -148,6 +160,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split35_northEast_cvd.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split25_northEast_cvd.RData")
 
 
