@@ -22,18 +22,13 @@ dt <- dt[ssa_state_cd %in% states_list]
 dt <- dt[order(id, adate)]
 dt <- dt[ , .SD[1], by = id]
 
-# Split pm2.5 into above and below EPA threshold
-split_val <- 35
-dt[ , pm25_blw_case := ifelse(pm25_lag01_case <= split_val, pm25_lag01_case, 0)]
-dt[ , pm25_abv_case := ifelse(pm25_lag01_case > split_val, pm25_lag01_case, 0)]
-dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
-dt[ , pm25_abv_control := ifelse(pm25_lag01_control > split_val, pm25_lag01_control, 0)]
-
 # Get difference between case and control
-dt[ , pm25_blw := pm25_blw_case - pm25_blw_control]
-dt[ , pm25_abv := pm25_abv_case - pm25_abv_control]
+dt[ , pm25 := pm25_lag01_case - pm25_lag01_control]
 dt[ , tmmx := tmmx_lag01_case - tmmx_lag01_control]
 dt[ , rmax := rmax_lag01_case - rmax_lag01_control]
+
+# Which columns indicate exposure
+X_cols <- "pm25"
 
 # Divide covariates by their standard deviation
 sd_tmmx <- sd(dt$tmmx, na.rm = T)
@@ -42,8 +37,7 @@ dt[ , tmmx := tmmx / sd_tmmx]
 dt[ , rmax := rmax / sd_rmax]
 
 # Remove unnecessary variables
-dt[ , c("id", "adate", "ssa_state_cd", "pm25_lag01_case", "pm25_lag01_control",
-        "pm25_blw_case", "pm25_abv_case", "pm25_blw_control", "pm25_abv_control") := NULL]
+dt[ , c("id", "adate", "ssa_state_cd", "pm25_lag01_case", "pm25_lag01_control") := NULL]
 
 # Remove NA rows (moretrees doesn't do this automatically)
 dt <- na.omit(dt)
@@ -57,7 +51,7 @@ tr <- moretrees::ccs_tree("7")$tr
 setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
 # Model 1: no covariate control ------------------------------------------------------------------------------------------
-mod1 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
+mod1 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
                              W = NULL,
                              y = rep(1, nrow(dt)),
                              outcomes = dt$ccs_added_zeros,
@@ -76,10 +70,10 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = "./results/mod1_split35_all_cvd.RData")
+save(moretrees_results, file = "./results/mod1_split0_all_cvd.RData")
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
-mod2 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
+mod2 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
                              W = as.matrix(dt[ , c("tmmx", "rmax")]),
                              y = rep(1, nrow(dt)), 
                              initial_values = mod1$mod,
@@ -99,7 +93,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split35_all_cvd.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod2_split0_all_cvd.RData")
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -134,7 +128,7 @@ dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_
 
 # Run model
 W_cols <- c(paste0("tmmx_spl", 1:(nknots + 1)), paste0("rmax_spl", 1:(nknots + 1)))
-mod3 <- moretrees::moretrees(X = as.matrix(dt[, c("pm25_blw", "pm25_abv")]), 
+mod3 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
                              y = rep(1, nrow(dt)),
                              initial_values = mod2$mod,
@@ -154,6 +148,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split35_all_cvd.RData")
+save(moretrees_results, sd_tmmx, sd_rmax, file = "./results/mod3_split0_all_cvd.RData")
 
 
