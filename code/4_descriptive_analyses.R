@@ -114,15 +114,15 @@ sink()
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
 
-# # fake data for testing
-# n <- 1000
-# dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
-#                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
-#                      ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
-
 # Get labels for CVD
 lvls_cvd <- get_labels('7')
-plot_depth <- 3
+plot_depth <- 4
+
+# fake data for testing
+n <- 1000
+dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+                     ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Merge in labels
 dt_cvd <- merge(dt_cvd, lvls_cvd, 
@@ -131,12 +131,14 @@ dt_cvd <- merge(dt_cvd, lvls_cvd,
 dt_cvd <- dt_cvd[order(match(ccs_added_zeros, lvls_cvd$lvl4_merge))]
 
 # Get plot data
-dt_cvd_plot <- dt_plot_fun(dt_cvd, lab_var = "ccs_lvl")
+dt_cvd_plot <- dt_plot_fun(dt_cvd, plot_depth = plot_depth)
 
 # Make plot
-xlab <- expression("Mean "*PM[2.5]*" difference")
+xlab <- expression(mu*"g"*m^-3)
 pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 0.1, lab.size = 3, digits = 2, axis.txt.size = 5)
+nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 2,
+             lab.size = 3, digits = 2, axis.txt.size = 5,
+             plot_depth = plot_depth)
 dev.off()
 
 # Get labels for RD

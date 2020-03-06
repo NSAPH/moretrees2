@@ -2,336 +2,96 @@
 # ----------------------------- CVD results ----------------------------------
 # ----------------------------------------------------------------------------
 
-# collecting approximate marginal likelihoods
-bayes_factor_cvd <- numeric(3)
-
-# CVD mod1 -------------------------------------------------------------------
 source("./code/results_functions.R")
+dataset <- c("cvd", "resp")
+root <- c("7", "8")
+splits <- c("25", "35")
+bf <- array(dim = c(2, 2, 3), 
+            dimnames = list("dataset" = c("Cardiovascular Data", "Respiratory Data"), 
+                            split = splits, "Model" = 1:3))
 
-# Read in results of moretrees model 
-load(file = "./results/mod1_split35_northEast_cvd.Rdata")
+for (i in 1:2) { # datasets
+   for (j in 1:2) { # splits
+      for (mod in 1:3) { # models
+         spl <- splits[j]
+         # Read in results of moretrees model 
+         load(file = paste0("./results/mod", mod, "_split", spl, "_northEast_", dataset[i], ".Rdata"))
+         
+         bf[i, j, mod] <- moretrees_results$mod$hyperparams$ELBO
+         # Get tree
+         tr <- ccs_tree(root[i])$tr
+         vids <- unlist(moretrees_results$beta_moretrees$outcomes)
+         vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
+         vids <- Reduce(union, vids)
+         tr <- induced_subgraph(tr, vids)
+         
+         # Create results table 
+         OR_est <- ccs_table(root = root[i], moretrees_results = moretrees_results,
+                             tr = tr, digits = 3, mult = 10)
+         OR_est$long_label <- NULL
+         require(xtable)
+         row.names(OR_est) <- NULL
+         OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
+         OR_xtable <- xtable(OR_est,align = c("l", "l", "p{6.5cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
+                             digits = 3, display = c("d", "d", "s", "d", "d", "f", "f"))
+         names(OR_xtable) <- c("Group", "CCS codes", 
+                               "$n_{out}$", "$n_{obs}$",
+                               paste0("RR below $", spl, " \\mu g \\cdot m^{-3}$ (95\\%CI)"),
+                               paste0("RR above $", spl, " \\mu g \\cdot m^{-3}$ (95\\%CI)"))
+         
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_table.tex")
+         write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
+                     sanitize.text.function = function(x) x),
+               file = tabfile)
+         # add Bayes factor to table
+         # write(x = paste0("Approximate Bayes Factor = ", round(moretrees_results$mod$hyperparams$ELBO)),
+               # file = tabfile, append = T)
+         
+         # Create results table with ML estimates 
+         OR_est <- ccs_table(root = root[i], moretrees_results = moretrees_results,
+                             type = "ml",
+                             digits = 3, mult = 10)
+         OR_est$short_label <- NULL
+         OR_est$long_label <- NULL
+         OR_est$n_outcomes <- NULL
+         OR_est$n_obs <- NULL
+         row.names(OR_est) <- NULL
+         OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
+                             digits = 3, display = c("d", "d", "f", "f"))
+         names(OR_xtable) <- c("Group", 
+                               "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
+                               "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
+         
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_ml_table.tex")
+         write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
+                     sanitize.text.function = function(x) x),
+               file = tabfile)
+         
+         # Create results tree plot 
+         pltfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_tree.pdf")
+         pdf(file = pltfile, width = 6, height = 2.8)
+         ccs_plot(root = "8", moretrees_results = moretrees_results,
+                  tr = tr,
+                  asp = 1/10, leaf.height = 30, label.dist = 4.5)
+         dev.off()
 
-# collect bayes factor
-bayes_factor_cvd[1] <- moretrees_results$mod$hyperparams$ELBO
+      }
+   }
+}
 
-# Create results table 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    digits = 3, mult = 10)
-OR_est$long_label <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-require(xtable)
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "p{7.2cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "f", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod1.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod1_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod1_cvd_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "7", moretrees_results = moretrees_results,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
+# Plot Bayes' factors
+require(reshape2)
+bf2 <- melt(bf)
+bf2$split <- factor(bf2$split)
+bf2$Model <- factor(bf2$Model)
+bfplot <- ggplot(bf2) + 
+   geom_point(aes(x = Model, y = value, shape = split), size = 2) +
+   facet_wrap(. ~ dataset, nrow = 1, scales = "free_y") +
+   theme_minimal() + xlab("Model") + ylab("Bayes Factor") +
+   scale_shape_discrete(name = expression(PM[2.5]*" break"),
+       labels = c(expression("25"*mu*"g"*m^-3),
+                  expression("35"*mu*"g"*m^-3)),
+       solid = F)
+pdf(file = "./figures/bf_northEast.pdf", width = 6, height = 2)
+bfplot
 dev.off()
-
-# CVD mod2 -------------------------------------------------------------------
-source("./code/results_functions.R")
-
-# Read in results of moretrees model 
-load(file = "./results/mod2_split35_northEast_cvd_attempt2.RData")
-
-# collect bayes factor
-bayes_factor_cvd[2] <- moretrees_results$mod$hyperparams$ELBO
-
-# Create results table 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    digits = 3, mult = 10)
-OR_est$long_label <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-require(xtable)
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "p{7.2cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "f", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod2.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod2_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod2_cvd_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "7", moretrees_results = moretrees_results,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
-dev.off()
-
-# CVD mod3 -------------------------------------------------------------------
-source("./code/results_functions.R")
-
-# Read in results of moretrees model 
-load(file = "./results/mod3_split35_northEast_cvd.RData")
-
-# collect bayes factor
-bayes_factor_cvd[3] <- moretrees_results$mod$hyperparams$ELBO
-
-# Create results table 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    digits = 3, mult = 10)
-OR_est$long_label <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-require(xtable)
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "p{7.2cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "f", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod3.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "7", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_cvd_mod3_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod3_cvd_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "7", moretrees_results = moretrees_results,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
-dev.off()
-
-# ----------------------------------------------------------------------------
-# ------------------------ Respiratory results -------------------------------
-# ----------------------------------------------------------------------------
-
-# collecting approximate marginal likelihoods
-rm(list = ls())
-bayes_factor_resp <- numeric(3)
-
-# Respiratory disease mod1 ------------------------------------------------------------
-source("./code/results_functions.R")
-
-# Read in results of moretrees model 
-load(file = "./results/mod1_split35_northEast_resp_run2.Rdata")
-
-# collect bayes factor
-bayes_factor_resp[1] <- moretrees_results$mod$hyperparams$ELBO
-
-# Get tree
-tr <- ccs_tree("8")$tr
-vids <- unlist(moretrees_results$beta_moretrees$outcomes)
-vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
-vids <- Reduce(union, vids)
-tr <- induced_subgraph(tr, vids)
-
-# Create results table 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    tr = tr, digits = 3, mult = 10)
-OR_est$long_label <- NULL
-require(xtable)
-row.names(OR_est) <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.6cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod1.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod1_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod1_resp_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "8", moretrees_results = moretrees_results,
-         tr = tr,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
-dev.off()
-
-# Respiratory disease mod2 ------------------------------------------------------------
-source("./code/results_functions.R")
-
-# Read in results of moretrees model 
-load(file = "./results/mod2_split35_northEast_resp.Rdata")
-
-# collect bayes factor
-bayes_factor_resp[2] <- moretrees_results$mod$hyperparams$ELBO
-
-# Create results table 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    tr = tr, digits = 3, mult = 10)
-OR_est$long_label <- NULL
-require(xtable)
-row.names(OR_est) <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.6cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod2.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod2_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod2_resp_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "8", moretrees_results = moretrees_results,
-         tr = tr,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
-dev.off()
-
-# Respiratory disease mod3 ------------------------------------------------------------
-source("./code/results_functions.R")
-
-# Read in results of moretrees model 
-load(file = "./results/mod3_split35_northEast_resp.Rdata")
-
-# collect bayes factor
-bayes_factor_resp[3] <- moretrees_results$mod$hyperparams$ELBO
-
-# Create results table 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    tr = tr, digits = 3, mult = 10)
-OR_est$long_label <- NULL
-require(xtable)
-row.names(OR_est) <- NULL
-OR_est$n_obs <- formatC(OR_est$n_obs, format="d", big.mark=",")
-OR_xtable <- xtable(OR_est,align = c("l", "l", "p{7.6cm}", "r", "r", "p{2.2cm}", "p{2.2cm}"), 
-                    digits = 3, display = c("d", "d", "s", "d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", "CCS codes", 
-                      "$n_{out}$", "$n_{obs}$",
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod3.tex")
-
-# Create results table with ML estimates 
-OR_est <- ccs_table(root = "8", moretrees_results = moretrees_results,
-                    type = "ml",
-                    digits = 3, mult = 10)
-OR_est$short_label <- NULL
-OR_est$long_label <- NULL
-OR_est$n_outcomes <- NULL
-OR_est$n_obs <- NULL
-row.names(OR_est) <- NULL
-OR_xtable <- xtable(OR_est, align = c("l", "l", "l", "l"), 
-                    digits = 3, display = c("d", "d", "f", "f"))
-names(OR_xtable) <- c("Group", 
-                      "RR below $35 \\mu g \\cdot m^{-3}$ (95\\%CI)",
-                      "RR above $35 \\mu g \\cdot m^{-3}$ (95\\%CI)")
-
-write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
-            sanitize.text.function = function(x) x),
-      file = "./figures/table_resp_mod3_ml.tex")
-
-# Create results tree plot 
-pdf(file = "./figures/mod3_resp_tree.pdf", width = 6, height = 2.8)
-ccs_plot(root = "8", moretrees_results = moretrees_results,
-         tr = tr,
-         asp = 1/10, leaf.height = 30, label.dist = 4.5)
-dev.off()
-

@@ -54,25 +54,33 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   OR_est$short_label <- character(length = nrow(OR_est))
   for (g in 1:nrow(OR_est)) {
     ccs_g <- ccs[ccs$ccs_added_zeros %in% OR_est$outcomes[[g]], ]
+    ccs_g$label <- as.character(ccs_g$label)
     OR_est$long_label[g] <- collapse_labels(ccs_g)
     # Collapse siblings
     i <- 1
     while (i <= nrow(ccs_g)) {
       code <- ccs_g$ccs_added_zeros[i]
-      # Get siblings from tree
-      parent <- names(ego(tr, order = 1, mindist = 1,
-                          nodes = code, mode = "in")[[1]])
-      sibs <- names(ego(tr, order = 1, mindist = 1,
-                        nodes = parent, mode = "out")[[1]])
-      if (sum(sibs %in% ccs_g$ccs_added_zeros) == length(sibs)) {
-        ccs_g$ccs_added_zeros[i] <- parent
-        parent <- str_remove_all(parent, "\\.0")
-        ccs_g$ccs_original[i] <- parent
-        ccs_g$label[i] <- ccs_lvls$label[ccs_lvls$ccs_code == parent]
-        ccs_g <- ccs_g[!(ccs_g$ccs_added_zeros %in% setdiff(sibs, code)), ]
-        i <- 1
+      if (code == root) { # in this case, we have one group with all outcomes
+        ccs_g$label[i] <- root 
+        ccs_g$label[i] <- as.character(ccs_lvls$label[ccs_lvls$ccs_code == root])
+        ccs_g$ccs_original[i] <- root
+        i <- nrow(ccs_g) + 1
       } else {
-        i <- i + 1
+        # Get siblings from tree
+        parent <- names(ego(tr, order = 1, mindist = 1,
+                            nodes = code, mode = "in")[[1]])
+        sibs <- names(ego(tr, order = 1, mindist = 1,
+                          nodes = parent, mode = "out")[[1]])
+        if (sum(sibs %in% ccs_g$ccs_added_zeros) == length(sibs)) {
+          ccs_g$ccs_added_zeros[i] <- parent
+          parent <- str_remove_all(parent, "\\.0")
+          ccs_g$ccs_original[i] <- parent
+          ccs_g$label[i] <- as.character(ccs_lvls$label[ccs_lvls$ccs_code == parent])
+          ccs_g <- ccs_g[!(ccs_g$ccs_added_zeros %in% setdiff(sibs, code)), ]
+          i <- 1
+        } else {
+          i <- i + 1
+        }
       }
     }
     # Collapse simplified labels into one string
@@ -91,7 +99,7 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   return(OR_est[ , c("group", "short_label", "long_label",
                      "n_outcomes", "n_obs", paste0("ci_est", 1:k))])
 }
-  
+
 ccs_plot <- function(root, moretrees_results, tr = NULL,
                      asp = 1/5, internal.width = 0.1,
                      leaf.width = 2, internal.height = 0.1,
@@ -146,7 +154,7 @@ ccs_plot <- function(root, moretrees_results, tr = NULL,
   legend('bottom', legend = cols2$names,
          pch = 15, pt.cex = 1, col = as.character(cols2$cols),
          bty = "n", horiz = T, text.width = 0.2, cex = 0.5)
-
+  
 }
 
 get_labels <- function(root) {
@@ -173,11 +181,20 @@ mean.diff.log <- function(x , y) {
   list(est = ttest$estimate, cil = ttest$conf.int[1], ciu = ttest$conf.int[2], n = length(x))
 }
 
-dt_plot_fun <- function(dt, lab_var = "ccs_lvl", plot_depth = 3) {
+dt_plot_fun <- function(dt, plot_depth = 3) {
   for (i in 1:plot_depth) {
     dt[ , paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), i) := mean.diff.log(pm25_lag01_case, pm25_lag01_control),
-        by = get(paste0(lab_var, i))]
-    dt[ , paste0("pltlab", i) := paste0(get(paste0(lab_var, i)), " (n = ", get(paste0("n", i)), ")")]
+        by = get(paste0("ccs_lvl", i))]
+    if (i < 3) {
+      dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), ": ", 
+                                str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
+    }
+    if (i == 3) {
+      dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), " (n = ", get(paste0("n", i)), ")")]
+    }
+    if (i == 4) {
+      dt[ , paste0("pltlab", i) := get(paste0("ccs_lvl", i))]
+    }
   }
   dt_plot <- unique(dt[ , paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:plot_depth, each = 5)), with = FALSE])
   dt[ , paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:plot_depth, each = 5)) := NULL]
@@ -213,7 +230,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
       scale_x_continuous(limits = c(lims[1] - lab.nudge, 
                                     lims[2]),
                          breaks = c(-x.grid, 0, x.grid))
-
+    
   })
   for (i in 1:plot_depth) {
     lab <- paste0("pltlab", i)
