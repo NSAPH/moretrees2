@@ -202,16 +202,24 @@ dt_plot_fun <- function(dt, plot_depth = 3) {
 }
 
 nested_plots <- function(dt_plot, plot_depth = 3,
-                         digits = 1, lab.nudge = 1.5, 
+                         digits = 1, 
+                         lab.widths = rep(1.5, plot_depth),
                          errorbar.height = 0.5,
-                         lab.size = 1,
-                         axis.txt.size = 0.7,
+                         lab.txt.size = 10,
+                         lab.txt.width = rep(10, plot_depth),
+                         axis.height = 1.5,
+                         axis.txt.size = 2,
                          xlab = "PM2.5") {
+  # Remove unnecessary columns
+  dt_plot <- dt_plot[ , 
+          paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
+                 rep(1:plot_depth, each = 5)), with = FALSE]
+  dt_plot <- dt_plot[!duplicated(dt_plot), ]
   plot.count <- 0
   grobs <- list()
   lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
             max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
-  x.grid <- round(max(abs(lims)) / 2, digits = digits)
+  x.grid <- round(max(abs(lims)) * 2 / 3, digits = digits)
   layout <- integer()
   xaxis.plt <- local({
     dat <- data.table(x = c(-x.grid, x.grid), y = c(0, 0))
@@ -225,16 +233,48 @@ nested_plots <- function(dt_plot, plot_depth = 3,
             panel.grid.minor.y = element_blank(),
             panel.grid.major.y = element_blank(),
             panel.background = element_blank(),
-            plot.margin = margin(t = 0, r = 0, b = 0.1,l = 0, "cm")) +
+            plot.margin = margin(t = 0, r = 0, b = 0, l = 0, "cm")) +
       xlab(xlab) +
-      scale_x_continuous(limits = c(lims[1] - lab.nudge, 
+      scale_x_continuous(limits = c(lims[1], 
                                     lims[2]),
                          breaks = c(-x.grid, 0, x.grid))
     
   })
   for (i in 1:plot_depth) {
     lab <- paste0("pltlab", i)
-    for (disease in unique(dt_plot[ , get(lab)])) {
+    diseases <- unique(dt_plot[ , get(lab)])
+    # Make label plots
+    for (disease in diseases) {
+      plot.count <- plot.count + 1
+      y.times <- sum(dt_plot[ , get(lab)] == disease)
+      layout <- c(layout, rep(plot.count, times = y.times))
+      grobs[[plot.count]] <- local({
+        y.height <- y.times / 2
+        if (y.times > 1) {
+          disease_nm <- str_remove(disease, "\\s\\(.*\\)")
+          n_nm <- str_extract(disease, "\\(.*\\)")
+          disease_wrap <- paste0(str_wrap(disease_nm, lab.txt.width[i]),
+                                 "\n", n_nm)
+        } else {
+          disease_wrap <- disease
+        }
+        grob <- ggplot(data.frame(disease = disease_wrap, x = 0, y = y.height), 
+                       aes(x = x, y = y, label = disease)) + 
+          geom_text(hjust = 0, size = lab.txt.size) +
+          scale_x_continuous(lim = c(0, 1)) +
+          theme_void() +
+          theme(panel.border = 
+                  element_rect(colour = "black", fill = NA, size = 0.3),
+                panel.background = element_rect(color = "grey100"))
+        grob
+      })
+    }
+    plot.count <- plot.count + 1
+    grobs[[plot.count]] <- ggplot() + geom_blank() + theme_void()
+    layout <- c(layout, plot.count)
+    # grobs[[plot.count]] <- xaxis.plt
+    # Make point range plots
+    for (disease in diseases) {
       plot.count <- plot.count + 1
       y.times <- sum(dt_plot[ , get(lab)] == disease)
       layout <- c(layout, rep(plot.count, times = y.times))
@@ -260,16 +300,10 @@ nested_plots <- function(dt_plot, plot_depth = 3,
           geom_point(aes(x = get(x), y = y.height)) +
           geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
                              y = y.height), height = errorbar.height) +
-          geom_text(aes(label = disease, 
-                        x = lims[1] - lab.nudge, 
-                        y = y.height),
-                    hjust = 0, size = lab.size) +
           theme_void() +
           theme(panel.border = 
-                  element_rect(colour = "black", fill = NA, size = 0.1)) +
-          scale_x_continuous(limits = 
-                               c(lims[1] - lab.nudge, 
-                                 lims[2])) + 
+                  element_rect(colour = "black", fill = NA, size = 0.3)) +
+          scale_x_continuous(limits = lims) + 
           scale_y_continuous(limits = c(y.min, y.max))
         grob
       })
@@ -278,7 +312,14 @@ nested_plots <- function(dt_plot, plot_depth = 3,
     grobs[[plot.count]] <- xaxis.plt
     layout <- c(layout, plot.count)
   }
-  layout_matrix <- matrix(layout, ncol = plot_depth)
-  grid.arrange(grobs = grobs, layout_matrix = layout_matrix, 
+  layout_matrix <- matrix(layout, ncol = plot_depth * 2)
+  widths <- c()
+  for (i in 1:plot_depth) {
+    widths <- c(widths, lab.widths[i], 1)
+  }
+  heights <- rep(1, nrow(layout_matrix))
+  heights[length(heights)] <- axis.height
+  grid.arrange(grobs = grobs, layout_matrix = layout_matrix,
+               widths = widths, heights = heights,
                padding = unit(0, "line"))
 }
