@@ -114,15 +114,15 @@ sink()
 
 # Figure 1 -----------------------------------------------------------------------------------------------------
 
-# # fake data for testing
-# n <- 1000
-# dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
-#                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
-#                      ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
-
 # Get labels for CVD
 lvls_cvd <- get_labels('7')
 plot_depth <- 3
+
+# fake data for testing
+n <- 1000
+dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+                     ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Merge in labels
 dt_cvd <- merge(dt_cvd, lvls_cvd, 
@@ -131,16 +131,28 @@ dt_cvd <- merge(dt_cvd, lvls_cvd,
 dt_cvd <- dt_cvd[order(match(ccs_added_zeros, lvls_cvd$lvl4_merge))]
 
 # Get plot data
-dt_cvd_plot <- dt_plot_fun(dt_cvd, lab_var = "ccs_lvl")
+dt_cvd_plot <- dt_plot_fun(dt_cvd, plot_depth = plot_depth)
 
 # Make plot
-xlab <- expression("Mean "*PM[2.5]*" difference")
-pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_cvd_plot, xlab = xlab, lab.nudge = 0.1, lab.size = 3, digits = 2, axis.txt.size = 5)
+xlab <- expression(mu*"g"*m^-3)
+lab.widths <- c(0.9, 0.9, 0.8)
+lab.txt.width <- c(20, 20, 25)
+pdf(file = "./figures/cvd_nested_plot1.pdf", height = 8, width = 10)
+nested_plots(dt_cvd_plot, xlab = xlab, lab.widths = lab.widths,
+             lab.txt.width = lab.txt.width, axis.height = 1.5,
+             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             plot_depth = plot_depth)
 dev.off()
 
 # Get labels for RD
 lvls_resp <- get_labels('8')
+
+# fake data for testing
+n <- 1000
+dt_resp <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+                     ccs_added_zeros = sample(lvls_resp$lvl4_merge, size = n, replace = T))
+
 
 # Merge in labels
 dt_resp <- merge(dt_resp, lvls_resp, 
@@ -149,11 +161,17 @@ dt_resp <- merge(dt_resp, lvls_resp,
 dt_resp <- dt_resp[order(match(ccs_added_zeros, lvls_resp$lvl4_merge))]
 
 # Get plot data
-dt_resp_plot <- dt_plot_fun(dt_resp, lab_var = "ccs_lvl")
+dt_resp_plot <- dt_plot_fun(dt_resp, plot_depth = plot_depth)
 
 # Plot difference in PM25 between case and control by disease ----------------------------------
-pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 6)
-nested_plots(dt_resp_plot, xlab = xlab, lab.nudge = 0.15, lab.size = 3, digits = 2, axis.txt.size = 7)
+xlab <- expression(mu*"g"*m^-3)
+lab.widths <- c(0.9, 3, 1.1)
+lab.txt.width <- c(17, 45, 25)
+pdf(file = "./figures/resp_nested_plot1.pdf", height = 8, width = 10)
+nested_plots(dt_resp_plot, xlab = xlab, lab.widths = lab.widths,
+             lab.txt.width = lab.txt.width, axis.height = 1.35,
+             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             plot_depth = plot_depth)
 dev.off()
 
 
