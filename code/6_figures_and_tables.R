@@ -16,7 +16,7 @@ for (i in 1:length(dataset)) { # datasets
       for (mod in 1:nmods) { # models
          spl <- splits[j]
          # Read in results of moretrees model 
-         load(file = paste0("./results/mod", mod, "_split", spl, "_northEast_", dataset[i], ".Rdata"))
+         load(file = paste0("./results/mod", mod, "_split", spl, "_all_", dataset[i], ".Rdata"))
          
          bf[i, j, mod] <- moretrees_results$mod$hyperparams$ELBO
          # Get tree
@@ -52,7 +52,7 @@ for (i in 1:length(dataset)) { # datasets
                              digits = 3, display = display)
          names(OR_xtable) <- tabnames
          
-         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_table.tex")
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_table.tex")
          write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
                      sanitize.text.function = function(x) x),
                file = tabfile)
@@ -74,13 +74,13 @@ for (i in 1:length(dataset)) { # datasets
          OR_xtable <- xtable(OR_est, align = align, 
                              digits = 3, display = display)
          names(OR_xtable) <- tabnames[-c(2, 3, 4)]
-         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_ml_table.tex")
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_ml_table.tex")
          write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
                      sanitize.text.function = function(x) x),
                file = tabfile)
          
          # Create results tree plot 
-         pltfile <- paste0("./figures/mod", mod, "_split", spl, "_northEast_", dataset[i], "_tree.pdf")
+         pltfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_tree.pdf")
          pdf(file = pltfile, width = 6, height = 2.8)
          ccs_plot(root = "8", moretrees_results = moretrees_results,
                   tr = tr,
@@ -105,6 +105,16 @@ bfplot <- ggplot(bf2) +
                   expression("25"*mu*"g"*m^-3),
                   expression("35"*mu*"g"*m^-3)),
        solid = F)
-pdf(file = "./figures/bf_northEast.pdf", width = 6, height = 2)
+pdf(file = "./figures/bf_all.pdf", width = 6, height = 2)
 bfplot
 dev.off()
+
+# Best model
+bf_cvd <- bf2[bf2$dataset == "Cardiovascular Data", ]
+bf_cvd[which.max(bf_cvd$value), ]
+
+bf_resp <- bf2[bf2$dataset == "Respiratory Data", ]
+bf_resp[which.max(bf_resp$value), ]
+
+
+
