@@ -1,33 +1,65 @@
-Total CVD admissions in study period =  7190123
+Total CVD admissions in study period =  32833771
 
-Total first admissions for CVD =  3383810
+Total first admissions for CVD =  16154061
 
-Complete cases for CVD =  3354364 ( 99.1298 %)
+Complete cases for CVD =  16007293 ( 99.09145 %)
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00522   6.32581   9.41379  11.07687  14.02108 133.30443 
+  0.00522   6.68939   9.74169  11.13233  13.97700 174.94773 
 
 
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00764   6.30573   9.37146  11.04421  13.97150 122.66493 
+  0.00764   6.67576   9.72100  11.11354  13.94784 183.62401 
 
 
-Total respiratory admissions in study period =  3325108
+Case days with PM2.5 > 25:
+[1] 0.03677105
 
-Total first admissions for respiratory disease =  1809639
 
-Complete cases for respiratory disease =  1788913 ( 98.85469 %)
+Control days with PM2.5 > 25:
+[1] 0.03669003
+
+
+Case days with PM2.5 > 35:
+[1] 0.007912456
+
+
+Control days with PM2.5 > 35:
+[1] 0.007900899
+
+
+Total respiratory admissions in study period =  16073174
+
+Total first admissions for respiratory disease =  8796772
+
+Complete cases for respiratory disease =  8690837 ( 98.79575 %)
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.01824   6.23570   9.24413  10.87781  13.75122 122.66493 
+  0.01824   6.62659   9.60394  10.95624  13.71445 165.43865 
 
 
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00979   6.20130   9.17215  10.79192  13.62140 122.53190 
+  0.00979   6.61008   9.57791  10.92676  13.67186 164.08389 
+
+
+Case days with PM2.5 > 25:
+[1] 0.03376038
+
+
+Control days with PM2.5 > 25:
+[1] 0.03343913
+
+
+Case days with PM2.5 > 35:
+[1] 0.007536788
+
+
+Control days with PM2.5 > 35:
+[1] 0.007423796
 
 
 Table 1 data------------------------------------------------------
@@ -39,28 +71,28 @@ CVD:
 
 Sex:
  dt_cvd$sex_gp       n   percent
-          Male 1452890 0.4331343
-        Female 1901474 0.5668657
+          Male 7101577 0.4436463
+        Female 8905716 0.5563537
 
 
 Age:
  dt_cvd$age_gp       n   percent
-     74<Age<85 1335038 0.3980003
-     64<Age<75 1110884 0.3311757
-        Age>84  908442 0.2708239
+     74<Age<85 6221447 0.3886633
+     64<Age<75 6001806 0.3749420
+        Age>84 3784040 0.2363947
 
 
 Race:
- dt_cvd$race_gp       n    percent
-          White 2967548 0.88468276
-          Other  136108 0.04057640
-          Black  250708 0.07474085
+ dt_cvd$race_gp        n   percent
+          White 13808909 0.8626636
+          Other   703639 0.0439574
+          Black  1494745 0.0933790
 
 
 Medicaid:
- dt_cvd$dual       n   percent
-           0 2860153 0.8526663
-           1  494211 0.1473337
+ dt_cvd$dual        n   percent
+           0 13244047 0.8273758
+           1  2763246 0.1726242
 
 
 Respiratory disease:
@@ -68,25 +100,25 @@ Respiratory disease:
 
 Sex:
  dt_resp$sex_gp       n   percent
-           Male  771010 0.4309936
-         Female 1017903 0.5690064
+           Male 3829043 0.4405839
+         Female 4861794 0.5594161
 
 
 Age:
- dt_resp$age_gp      n   percent
-      74<Age<85 688551 0.3848991
-      64<Age<75 502000 0.2806173
-         Age>84 598362 0.3344836
+ dt_resp$age_gp       n   percent
+      74<Age<85 3323929 0.3824636
+      64<Age<75 2818540 0.3243117
+         Age>84 2548368 0.2932247
 
 
 Race:
  dt_resp$race_gp       n    percent
-           White 1592590 0.89025570
-           Other   71724 0.04009362
-           Black  124599 0.06965068
+           White 7539718 0.86754797
+           Other  393706 0.04530128
+           Black  757413 0.08715075
 
 
 Medicaid:
  dt_resp$dual       n   percent
-            0 1445306 0.8079241
-            1  343607 0.1920759
+            0 6664355 0.7668255
+            1 2026482 0.2331745

@@ -217,12 +217,17 @@ nested_plots <- function(dt_plot, plot_depth = 3,
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
   plot.count <- 0
   grobs <- list()
+  # Get some plotting parameters
+  dt_plot[ , lab_col_num := as.integer(factor(cil_lvl2, levels = unique(cil_lvl2)))]
+  dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey100", "grey80")]
   lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
             max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
-  x.grid <- round(max(abs(lims)) * 2 / 3, digits = digits)
+  x.ticks <- round(max(abs(lims)) * 3 / 4, digits = digits)
+  x.grid <- x.ticks * c(-4/3, -1, -2/3, -1/3, 1/3, 2/3, 1, 4/3)
   layout <- integer()
+  # Make x axis plot
   xaxis.plt <- local({
-    dat <- data.table(x = c(-x.grid, x.grid), y = c(0, 0))
+    dat <- data.table(x = c(-x.ticks, x.ticks), y = c(0, 0))
     ggplot(dat) + geom_blank() +
       theme(axis.line.y=element_blank(),
             axis.text.y=element_blank(),
@@ -237,7 +242,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
       xlab(xlab) +
       scale_x_continuous(limits = c(lims[1], 
                                     lims[2]),
-                         breaks = c(-x.grid, 0, x.grid))
+                         breaks = c(-x.ticks, 0, x.ticks))
     
   })
   for (i in 1:plot_depth) {
@@ -248,6 +253,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
       plot.count <- plot.count + 1
       y.times <- sum(dt_plot[ , get(lab)] == disease)
       layout <- c(layout, rep(plot.count, times = y.times))
+      lab.col <- as.character(dt_plot[get(lab) == disease]$"lab_col"[1])
       grobs[[plot.count]] <- local({
         y.height <- y.times / 2
         if (y.times > 1) {
@@ -258,6 +264,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         } else {
           disease_wrap <- disease
         }
+        lab.col <- as.character(lab.col)
         grob <- ggplot(data.frame(disease = disease_wrap, x = 0, y = y.height), 
                        aes(x = x, y = y, label = disease)) + 
           geom_text(hjust = 0, size = lab.txt.size) +
@@ -265,14 +272,14 @@ nested_plots <- function(dt_plot, plot_depth = 3,
           theme_void() +
           theme(panel.border = 
                   element_rect(colour = "black", fill = NA, size = 0.3),
-                panel.background = element_rect(color = "grey100"))
+                panel.background = element_rect(color = lab.col))
+        print(lab.col)
         grob
       })
     }
     plot.count <- plot.count + 1
     grobs[[plot.count]] <- ggplot() + geom_blank() + theme_void()
     layout <- c(layout, plot.count)
-    # grobs[[plot.count]] <- xaxis.plt
     # Make point range plots
     for (disease in diseases) {
       plot.count <- plot.count + 1
@@ -292,10 +299,22 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         dat <- unique(dat)
         dat$disease <- disease
         grob <- ggplot(dat) + 
-          geom_vline(xintercept = 0, color = "red") +
-          geom_vline(xintercept = -x.grid, color = "grey80",
+          geom_vline(xintercept = 0, color = "red", lwd = 0.4) +
+          geom_vline(xintercept = x.grid[1], color = "grey70",
                      lwd = 0.2, lty = 2) +
-          geom_vline(xintercept = x.grid, color = "grey80",
+          geom_vline(xintercept = x.grid[2], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[3], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[4], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[5], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[6], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[7], color = "grey70",
+                     lwd = 0.2, lty = 2) +
+          geom_vline(xintercept = x.grid[8], color = "grey70",
                      lwd = 0.2, lty = 2) +
           geom_point(aes(x = get(x), y = y.height)) +
           geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 

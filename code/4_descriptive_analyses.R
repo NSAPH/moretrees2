@@ -16,28 +16,28 @@ cols.other <- c("id", "adate", "ssa_state_cd",
           "race_gp", "sex_gp", "age_gp", "dual")
 cols <- c(cols.other, cols.omit)
 
-# Select states
-states_list <- c(7, 20, 22, 30, 41,
-                 47, 31, 33, 39)
-# states_list <- c("CT", "ME", "MA", "NH", "RI", 
-#                 "VT", "NJ", "NY", "PA")
+# # Select states
+# states_list <- c(7, 20, 22, 30, 41,
+#                  47, 31, 33, 39)
+# # states_list <- c("CT", "ME", "MA", "NH", "RI", 
+# #                 "VT", "NJ", "NY", "PA")
 
 # Load respiratory data
 dt_resp <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                     as.data.table = T, 
                     columns = cols)
-# Keep only north east region
-dt_resp <- dt_resp[ssa_state_cd %in% states_list]
+# # Keep only north east region
+# dt_resp <- dt_resp[ssa_state_cd %in% states_list]
 
 # Load CVD data
 dt_cvd <- read_fst("./data/merged_admissions_enviro/admissions_enviro_cvd.fst",
                    as.data.table = T, 
                    columns = cols)
-# Keep only north east region
-dt_cvd <- dt_cvd[ssa_state_cd %in% states_list]
+# # Keep only north east region
+# dt_cvd <- dt_cvd[ssa_state_cd %in% states_list]
 
 # Data in text -------------------------------------------------------------------------------------------------
-
+require(janitor)
 sink(file = "./results/descriptives.txt")
 
 # CVD ---------------------------------------------------------
@@ -59,6 +59,16 @@ summary(dt_cvd$pm25_lag01_case)
 cat("\n\nPM2.5 summary for controls:\n")
 summary(dt_cvd$pm25_lag01_control)
 
+# CVD: days above and below threshold
+cat("\n\nCase days with PM2.5 > 25:\n")
+mean(dt_cvd$pm25_lag01_case > 25)
+cat("\n\nControl days with PM2.5 > 25:\n")
+mean(dt_cvd$pm25_lag01_control > 25)
+cat("\n\nCase days with PM2.5 > 35:\n")
+mean(dt_cvd$pm25_lag01_case > 35)
+cat("\n\nControl days with PM2.5 > 35:\n")
+mean(dt_cvd$pm25_lag01_control > 35)
+
 # Respiratory disease ------------------------------------------
 cat("\n\nTotal respiratory admissions in study period = ", nrow(dt_resp))
 
@@ -77,6 +87,16 @@ cat("\n\nPM2.5 summary for cases:\n")
 summary(dt_resp$pm25_lag01_case)
 cat("\n\nPM2.5 summary for controls:\n")
 summary(dt_resp$pm25_lag01_control)
+
+# Respiratory: days above and below threshold
+cat("\n\nCase days with PM2.5 > 25:\n")
+mean(dt_resp$pm25_lag01_case > 25)
+cat("\n\nControl days with PM2.5 > 25:\n")
+mean(dt_resp$pm25_lag01_control > 25)
+cat("\n\nCase days with PM2.5 > 35:\n")
+mean(dt_resp$pm25_lag01_case > 35)
+cat("\n\nControl days with PM2.5 > 35:\n")
+mean(dt_resp$pm25_lag01_control > 35)
 
 # Table 1 data
 
@@ -118,11 +138,11 @@ sink()
 lvls_cvd <- get_labels('7')
 plot_depth <- 3
 
-# fake data for testing
-n <- 1000
-dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
-                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
-                     ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
+# # fake data for testing
+# n <- 1000
+# dt_cvd <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+#                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+#                      ccs_added_zeros = sample(lvls_cvd$lvl4_merge, size = n, replace = T))
 
 # Merge in labels
 dt_cvd <- merge(dt_cvd, lvls_cvd, 
@@ -135,9 +155,9 @@ dt_cvd_plot <- dt_plot_fun(dt_cvd, plot_depth = plot_depth)
 
 # Make plot
 xlab <- expression(mu*"g"*m^-3)
-lab.widths <- c(0.9, 0.9, 0.8)
+lab.widths <- c(0.9, 0.9, 0.9)
 lab.txt.width <- c(20, 20, 25)
-pdf(file = "./figures/cvd_nested_plot1.pdf", height = 8, width = 10)
+pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 10)
 nested_plots(dt_cvd_plot, xlab = xlab, lab.widths = lab.widths,
              lab.txt.width = lab.txt.width, axis.height = 1.5,
              lab.txt.size = 4, digits = 2, axis.txt.size = 10,
@@ -147,11 +167,11 @@ dev.off()
 # Get labels for RD
 lvls_resp <- get_labels('8')
 
-# fake data for testing
-n <- 1000
-dt_resp <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
-                     pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
-                     ccs_added_zeros = sample(lvls_resp$lvl4_merge, size = n, replace = T))
+# # fake data for testing
+# n <- 1000
+# dt_resp <- data.table(pm25_lag01_case = abs(rnorm(n, sd = 0.01)),
+#                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
+#                      ccs_added_zeros = sample(lvls_resp$lvl4_merge, size = n, replace = T))
 
 
 # Merge in labels
@@ -165,12 +185,12 @@ dt_resp_plot <- dt_plot_fun(dt_resp, plot_depth = plot_depth)
 
 # Plot difference in PM25 between case and control by disease ----------------------------------
 xlab <- expression(mu*"g"*m^-3)
-lab.widths <- c(0.9, 3, 1.1)
-lab.txt.width <- c(17, 45, 25)
-pdf(file = "./figures/resp_nested_plot1.pdf", height = 8, width = 10)
+lab.widths <- c(0.9, 3.3, 1.2)
+lab.txt.width <- c(17, 50, 25)
+pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 10)
 nested_plots(dt_resp_plot, xlab = xlab, lab.widths = lab.widths,
              lab.txt.width = lab.txt.width, axis.height = 1.35,
-             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             lab.txt.size = 4, digits = 3, axis.txt.size = 10,
              plot_depth = plot_depth)
 dev.off()
 
