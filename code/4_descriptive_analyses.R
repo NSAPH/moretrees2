@@ -173,7 +173,6 @@ lvls_resp <- get_labels('8')
 #                      pm25_lag01_control = abs(rnorm(n, sd = 0.01)),
 #                      ccs_added_zeros = sample(lvls_resp$lvl4_merge, size = n, replace = T))
 
-
 # Merge in labels
 dt_resp <- merge(dt_resp, lvls_resp, 
                 by.x = "ccs_added_zeros", by.y = "lvl4_merge",
@@ -190,7 +189,7 @@ lab.txt.width <- c(17, 50, 25)
 pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 10)
 nested_plots(dt_resp_plot, xlab = xlab, lab.widths = lab.widths,
              lab.txt.width = lab.txt.width, axis.height = 1.35,
-             lab.txt.size = 4, digits = 3, axis.txt.size = 10,
+             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
              plot_depth = plot_depth)
 dev.off()
 

@@ -215,11 +215,9 @@ nested_plots <- function(dt_plot, plot_depth = 3,
           paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
                  rep(1:plot_depth, each = 5)), with = FALSE]
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
-  plot.count <- 0
-  grobs <- list()
   # Get some plotting parameters
   dt_plot[ , lab_col_num := as.integer(factor(cil_lvl2, levels = unique(cil_lvl2)))]
-  dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey100", "grey80")]
+  dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey85", "grey95")]
   lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
             max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
   x.ticks <- round(max(abs(lims)) * 3 / 4, digits = digits)
@@ -245,6 +243,9 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          breaks = c(-x.ticks, 0, x.ticks))
     
   })
+  # Make plots
+  plot.count <- 0
+  grobs <- list()
   for (i in 1:plot_depth) {
     lab <- paste0("pltlab", i)
     diseases <- unique(dt_plot[ , get(lab)])
@@ -272,8 +273,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
           theme_void() +
           theme(panel.border = 
                   element_rect(colour = "black", fill = NA, size = 0.3),
-                panel.background = element_rect(color = lab.col))
-        print(lab.col)
+                panel.background = element_rect(fill = lab.col))
         grob
       })
     }
