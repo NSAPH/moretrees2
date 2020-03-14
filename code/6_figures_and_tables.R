@@ -3,6 +3,7 @@
 # ----------------------------------------------------------------------------
 
 source("./code/results_functions.R")
+hm <- "full"
 dataset <- c("cvd", "resp")
 root <- c("7", "8")
 splits <- c("0", "25", "35")
@@ -14,9 +15,10 @@ bf <- array(dim = c(length(dataset), length(splits), nmods),
 for (i in 1:length(dataset)) { # datasets
    for (j in 1:length(splits)) { # splits
       for (mod in 1:nmods) { # models
+         ds <- dataset[i]
          spl <- splits[j]
          # Read in results of moretrees model 
-         load(file = paste0("./results/mod", mod, "_split", spl, "_all_", dataset[i], ".Rdata"))
+         load(file = paste0("./results/mod", mod, "_split", spl, "_", ds, "_", hm, ".Rdata"))
          
          bf[i, j, mod] <- moretrees_results$mod$hyperparams$ELBO
          # Get tree
@@ -26,7 +28,7 @@ for (i in 1:length(dataset)) { # datasets
          vids <- Reduce(union, vids)
          tr <- induced_subgraph(tr, vids)
          
-         # Create results table 
+         # Create results table
          OR_est <- ccs_table(root = root[i], moretrees_results = moretrees_results,
                              tr = tr, digits = 3, mult = 10)
          OR_est$long_label <- NULL
@@ -37,30 +39,27 @@ for (i in 1:length(dataset)) { # datasets
          align <- c("l", "l", "p{6.5cm}", "r", "r", rep("p{2.2cm}", k))
          display <- c("d", "d", "s", "d", "d", rep("f", k))
          if (spl == "0") {
-            tabnames <- c("Group", "CCS codes", 
+            tabnames <- c("Group", "CCS codes",
                           "$n_{out}$", "$n_{obs}$",
                           "RR (96\\%CI)")
          } else {
-            tabnames <- c("Group", "CCS codes", 
+            tabnames <- c("Group", "CCS codes",
                           "$n_{out}$", "$n_{obs}$",
                           paste0("RR below $", spl, " \\mu g \\cdot m^{-3}$ (95\\%CI)"),
                           paste0("RR above $", spl, " \\mu g \\cdot m^{-3}$ (95\\%CI)"))
          }
-         
+
          # make xtable
-         OR_xtable <- xtable(OR_est, align = align, 
+         OR_xtable <- xtable(OR_est, align = align,
                              digits = 3, display = display)
          names(OR_xtable) <- tabnames
-         
-         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_table.tex")
+
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_table.tex")
          write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
                      sanitize.text.function = function(x) x),
                file = tabfile)
-         # add Bayes factor to table
-         # write(x = paste0("Approximate Bayes Factor = ", round(moretrees_results$mod$hyperparams$ELBO)),
-               # file = tabfile, append = T)
-         
-         # Create results table with ML estimates 
+
+         # Create results table with ML estimates
          OR_est <- ccs_table(root = root[i], moretrees_results = moretrees_results,
                              type = "ml",
                              digits = 3, mult = 10)
@@ -71,24 +70,54 @@ for (i in 1:length(dataset)) { # datasets
          row.names(OR_est) <- NULL
          align <- c("l", "l", rep("l", k))
          display <- c("d", "d", rep("f", k))
-         OR_xtable <- xtable(OR_est, align = align, 
+         OR_xtable <- xtable(OR_est, align = align,
                              digits = 3, display = display)
          names(OR_xtable) <- tabnames[-c(2, 3, 4)]
-         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_ml_table.tex")
+         tabfile <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_ml_table.tex")
          write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
                      sanitize.text.function = function(x) x),
                file = tabfile)
+# 
+#          # Create results tree plot
+#          pltfile <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_tree.pdf")
+#          pdf(file = pltfile, width = 6, height = 2.8)
+#          ccs_plot(root = "8", moretrees_results = moretrees_results,
+#                   tr = tr,
+#                   asp = 1/10, leaf.height = 30, label.dist = 4.5)
+#          dev.off()
          
-         # Create results tree plot 
-         pltfile <- paste0("./figures/mod", mod, "_split", spl, "_all_", dataset[i], "_tree.pdf")
-         pdf(file = pltfile, width = 6, height = 2.8)
-         ccs_plot(root = "8", moretrees_results = moretrees_results,
-                  tr = tr,
-                  asp = 1/10, leaf.height = 30, label.dist = 4.5)
+         # Create matrix plot
+         rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
+         pltfile2 <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_matrix.pdf")
+         pdf(file = pltfile2, width = 12, height = 9.5)
+         print(equal_betas_plot(prob = moretrees_results$mod$vi_params$prob,
+                                groups = moretrees_results$beta_est$group,
+                                tr = tr,
+                                rownames.lab.offset = rownames.lab.offset))
          dev.off()
-
       }
    }
+}
+
+# Plot prior
+for (i in 1:2) {
+   ds <- dataset[i]
+   load(file = paste0("./results/mod", mod, "_split", spl, "_", ds, "_", hm, ".Rdata"))
+   # Get tree
+   tr <- ccs_tree(root[i])$tr
+   vids <- unlist(moretrees_results$beta_moretrees$outcomes)
+   vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
+   vids <- Reduce(union, vids)
+   tr <- induced_subgraph(tr, vids)
+   # Create matrix plot
+   rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
+   pltfile3 <- paste0("./figures/prior_", ds, ".pdf")
+   pdf(file = pltfile3, width = 12, height = 9.5)
+   print(equal_betas_plot(prob = rep(0.5, length(moretrees_results$mod$vi_params$prob)),
+                          show.groups = F,
+                          tr = tr,
+                          rownames.lab.offset = rownames.lab.offset))
+   dev.off()
 }
 
 # Plot Bayes' factors
@@ -99,13 +128,14 @@ bf2$Model <- factor(bf2$Model)
 bfplot <- ggplot(bf2) + 
    geom_point(aes(x = Model, y = value, shape = split), size = 2) +
    facet_wrap(. ~ dataset, nrow = 1, scales = "free_y") +
-   theme_minimal() + xlab("Model") + ylab("Bayes Factor") +
+   theme_minimal() + xlab("Model") + 
+   ylab(expression("Lower Bound for "*pi(Y))) +
    scale_shape_discrete(name = expression(PM[2.5]*" break"),
        labels = c("No break",
                   expression("25"*mu*"g"*m^-3),
                   expression("35"*mu*"g"*m^-3)),
        solid = F)
-pdf(file = "./figures/bf_all.pdf", width = 6, height = 2)
+pdf(file = paste0("./figures/vb_bound_", hm, ".pdf"), width = 6, height = 2)
 bfplot
 dev.off()
 
