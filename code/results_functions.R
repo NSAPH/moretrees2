@@ -5,6 +5,7 @@ require(stringr)
 require(gridExtra)
 require(data.table)
 require(ggplot2)
+require(ggtree)
 
 firstlower <- function(x) {
   substr(x, 1, 1) <- tolower(substr(x, 1, 1))
@@ -187,7 +188,7 @@ dt_plot_fun <- function(dt, plot_depth = 3) {
         by = get(paste0("ccs_lvl", i))]
     if (i < 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), ": ", 
-                                str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
+                                          str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
     }
     if (i == 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), " (n = ", get(paste0("n", i)), ")")]
@@ -212,8 +213,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          xlab = "PM2.5") {
   # Remove unnecessary columns
   dt_plot <- dt_plot[ , 
-          paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
-                 rep(1:plot_depth, each = 5)), with = FALSE]
+                      paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
+                             rep(1:plot_depth, each = 5)), with = FALSE]
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
   # Get some plotting parameters
   dt_plot[ , lab_col_num := as.integer(factor(cil_lvl2, levels = unique(cil_lvl2)))]
@@ -393,7 +394,7 @@ equal_betas_plot <- function(prob,
                              rownames.lab.offset = 0.8,
                              group.lab.offset = 0.3,
                              show.groups = T
-                             ) {
+) {
   
   leaves <- names(V(tr))[V(tr)$leaf]
   pmat <- equal_betas_mat(leaves, prob, tr)
@@ -405,20 +406,22 @@ equal_betas_plot <- function(prob,
   } else {
     groups.df$Group <-  as.factor(groups)
   }
-
+  
   p <- ggtree(tr, ladderize = F)
   # Add tip labels
   p <- p  %<+% groups.df + geom_tiplab(aes(label = leafnames),
-                size = ccs.text.size,
-                offset = rownames.lab.offset)
+                                       size = ccs.text.size,
+                                       offset = rownames.lab.offset)
   # Add group colours
   if (show.groups) {
     cols_g <- brewer.pal(length(levels(groups.df$Group)), "Set3")
     p <- p + geom_tippoint(aes(color = Group),
-              shape = 15, size = 4) +
-      geom_tiplab(aes(label = Group), size = group.text.size,
-                  offset = group.lab.offset)  +   
-      scale_color_manual(values = cols_g)
+                           shape = 15, size = 4) +
+             geom_tiplab(aes(label = Group), size = group.text.size,
+                  offset = group.lab.offset)
+    if (length(cols_g) == length(levels(groups.df$Group))) {
+      p <- p + scale_color_manual(values = cols_g)
+    }
   }
   # Add pmat heatmap
   p <- gheatmap(p, pmat, 
