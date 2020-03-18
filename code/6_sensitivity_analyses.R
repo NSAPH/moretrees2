@@ -8,9 +8,9 @@ require(moretrees)
 require(fst)
 
 # Key parameters
-dataset <- "cvd" # "cvd" or "resp"
-split <- "0" # "0", "25", or "35"
-hyper_method <- "EB" # "full" or "EB"
+dataset <- "resp" # "cvd" or "resp"
+split <- "25" # "0", "25", or "35"
+hyper_method <- "full" # "full" or "EB"
 
 # Controls
 tol <- 1E-8 
@@ -25,7 +25,8 @@ dt <- read_fst(paste0("./data/merged_admissions_enviro/admissions_enviro_", data
                            # "ssa_state_cd",
                            "ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                            "tmmx_lag01_case", "tmmx_lag01_control",
-                           "rmax_lag01_case", "rmax_lag01_control"))
+                           "rmax_lag01_case", "rmax_lag01_control",
+                           "ozone_lag01_control", "ozone_lag01_case"))
 
 # # Keep only north east region
 # states_list <- c(7, 20, 22, 30, 41, 47, 31, 33, 39)
@@ -61,17 +62,22 @@ if (split %in% c("25", "35")) {
 # Get difference between case and control for covariates
 dt[ , tmmx := tmmx_lag01_case - tmmx_lag01_control]
 dt[ , rmax := rmax_lag01_case - rmax_lag01_control]
+dt[ , ozone := ozone_lag01_case - ozone_lag01_control]
 
 # Divide covariates by their standard deviation
 sd_tmmx <- sd(dt$tmmx, na.rm = T)
 sd_rmax <- sd(dt$rmax, na.rm = T)
+sd_ozone <- sd(dt$ozone, na.rm = T)
 dt[ , tmmx := tmmx / sd_tmmx]
 dt[ , rmax := rmax / sd_rmax]
+dt[ , ozone := ozone / sd_ozone]
 
 # Keep only necessary variables
 dt <- dt[ , c(X_cols, "ccs_added_zeros",
-              "tmmx", "rmax", "tmmx_lag01_case", "tmmx_lag01_control",
-              "rmax_lag01_case", "rmax_lag01_control"), with = FALSE]
+              "tmmx", "rmax", "ozone",
+              "tmmx_lag01_case", "tmmx_lag01_control",
+              "rmax_lag01_case", "rmax_lag01_control",
+              "ozone_lag01_case", "ozone_lag01_control"), with = FALSE]
 
 # Remove NA rows (moretrees doesn't do this automatically)
 dt <- na.omit(dt)
@@ -94,32 +100,13 @@ tr <- induced_subgraph(graph = tr, vids = vids)
 # check again
 setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
-# Model 1: no covariate control ------------------------------------------------------------------------------------------
-mod1 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
-                             W = NULL,
-                             y = rep(1, nrow(dt)),
-                             hyper_method = hyper_method,
-                             outcomes = dt$ccs_added_zeros,
-                             max_iter = max_iter,
-                             update_hyper_freq = update_hyper_freq,
-                             tol = tol_hyper,
-                             tol_hyper = tol_hyper,
-                             tr = tr,
-                             nrestarts = 1,
-                             print_freq = 1,  
-                             get_ml = TRUE)
-
-# Delete g
-moretrees_results <- mod1
-moretrees_results$mod$hyperparams$g_eta <- NULL
-moretrees_results$mod$hyperparams$eta <- NULL
-
-# save
-save(moretrees_results, file = paste0("./results/mod1_split", split, "_", dataset, "_", hyper_method, ".RData"))
+# # Create hyperparameter levels
+# V(tr)$levels <- 1
+# V(tr)$levels[V(tr)$leaf] <- 2
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 mod2 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax")]),
+                             W = as.matrix(dt[ , c("tmmx", "rmax", "ozone")]),
                              y = rep(1, nrow(dt)), 
                              hyper_method = hyper_method,
                              outcomes = dt$ccs_added_zeros,
@@ -138,7 +125,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_", hyper_method, ".RData"))
+save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_", hyper_method, "_ozone.RData"))
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -168,11 +155,26 @@ rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
 dt[ , paste0("rmax_spl", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots)
                                                           - ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
 
+# Get splines for ozone
+sd_ozone <- sd(unlist(dt[ , c("ozone_lag01_case", "ozone_lag01_control")]))
+dt[ , ozone_lag01_case := ozone_lag01_case / sd_ozone]
+dt[ , ozone_lag01_control := ozone_lag01_control / sd_ozone]
+ozone_knots <- quantile(unlist(dt[ , c("ozone_lag01_case", "ozone_lag01_control")]), probs = q)
+ozone_internal_knots <- ozone_knots[2:(length(ozone_knots) - 1)]
+ozone_boundary_knots <- c(ozone_knots[1], ozone_knots[length(ozone_knots)])
+dt[ , paste0("ozone_spl", 1:(nknots + 1)) := as.data.table(ns(ozone_lag01_case, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots)
+                                                           - ns(ozone_lag01_control, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots))]
+
+
 # Remove unnecessary columns to save memory
-dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control") := NULL]
+dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", 
+        "rmax_lag01_case", "rmax_lag01_control",
+        "ozone_lag01_case", "ozone_lag01_control") := NULL]
 
 # Run model
-W_cols <- c(paste0("tmmx_spl", 1:(nknots + 1)), paste0("rmax_spl", 1:(nknots + 1)))
+W_cols <- c(paste0("tmmx_spl", 1:(nknots + 1)), 
+            paste0("rmax_spl", 1:(nknots + 1)),
+            paste0("ozone_spl", 1:(nknots + 1)))
 mod3 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
                              W = as.matrix(dt[ , W_cols, with = FALSE]),
                              y = rep(1, nrow(dt)),
@@ -193,6 +195,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_", hyper_method, ".RData"))
+save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_", hyper_method, "_ozone.RData"))
 
 
