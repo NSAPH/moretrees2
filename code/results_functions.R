@@ -5,6 +5,7 @@ require(stringr)
 require(gridExtra)
 require(data.table)
 require(ggplot2)
+require(ggtree)
 
 firstlower <- function(x) {
   substr(x, 1, 1) <- tolower(substr(x, 1, 1))
@@ -112,7 +113,7 @@ ccs_plot <- function(root, moretrees_results, tr = NULL,
   
   # Assign groups to tree
   outcomes <- moretrees_results$beta_moretrees$outcomes
-  cols_g <- brewer.pal(length(outcomes), "Set1")
+  cols_g <- brewer.pal(length(outcomes), "Set3")
   cols <- character(length(V(tr)))
   V(tr)$group <- 0
   for (g in 1:length(outcomes)) {
@@ -187,7 +188,7 @@ dt_plot_fun <- function(dt, plot_depth = 3) {
         by = get(paste0("ccs_lvl", i))]
     if (i < 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), ": ", 
-                                str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
+                                          str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
     }
     if (i == 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), " (n = ", get(paste0("n", i)), ")")]
@@ -212,8 +213,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          xlab = "PM2.5") {
   # Remove unnecessary columns
   dt_plot <- dt_plot[ , 
-          paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
-                 rep(1:plot_depth, each = 5)), with = FALSE]
+                      paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
+                             rep(1:plot_depth, each = 5)), with = FALSE]
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
   # Get some plotting parameters
   dt_plot[ , lab_col_num := as.integer(factor(cil_lvl2, levels = unique(cil_lvl2)))]
@@ -342,3 +343,107 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                widths = widths, heights = heights,
                padding = unit(0, "line"))
 }
+
+equal_betas <- function(v1, v2, prob, ancestors) {
+  anc1 <- ancestors[[v1]]
+  anc2 <- ancestors[[v2]]
+  non_common_anc <- setdiff(union(anc1, anc2),
+                            intersect(anc1, anc2))
+  return(prod(1 - prob[non_common_anc]))
+}
+
+equal_betas_mat <- function(leaves, prob, tr) {
+  # reorder nodes
+  nodes <- names(igraph::V(tr))
+  leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+  nodes <- c(nodes[!(nodes %in% leaves)], leaves)
+  names(prob) <- nodes
+  pL <- length(leaves)
+  
+  # get ancestors
+  d <- igraph::diameter(tr)
+  ancestors <- igraph::ego(tr, order = d + 1, nodes = leaves, mode = "in")
+  ancestors <- sapply(ancestors, names, simplify = F)
+  ancestors <- sapply(ancestors, function(a, nodes) which(nodes %in% a), nodes = nodes,
+                      simplify = F)
+  names(ancestors) <- leaves
+  
+  # get equality matrix
+  pmat <- matrix(nrow = pL, ncol = pL)
+  diag(pmat) <- 1
+  rownames(pmat) <- colnames(pmat) <- leaves
+  for (v1 in 1:(length(leaves) - 1)) {
+    for (v2 in (v1 + 1):length(leaves)) {
+      pmat[v1, v2] <- equal_betas(v1 = leaves[v1], v2 = leaves[v2],
+                                  prob = prob, ancestors = ancestors)
+      pmat[v2, v1] <- pmat[v1, v2]
+    }
+  }
+  
+  return(pmat)
+}
+
+equal_betas_plot <- function(prob,
+                             groups = NULL,
+                             tr,
+                             ccs.text.size = 4,
+                             group.text.size = 4,
+                             legend.text.size = 14,
+                             heatmap.offset = 0.5,
+                             heatmap.width = 6,
+                             rownames.lab.offset = 0.8,
+                             group.lab.offset = 0.3,
+                             show.groups = T
+) {
+  
+  leaves <- names(V(tr))[V(tr)$leaf]
+  pmat <- equal_betas_mat(leaves, prob, tr)
+  colnames(pmat) <- str_remove_all(colnames(pmat), "\\.0")
+  groups.df <- data.frame(leaves = leaves, 
+                          leafnames = str_remove_all(leaves, "\\.0"))
+  if (is.null(groups)) {
+    groups.df$Group <-  as.factor(rep(1, nrow(groups.df)))
+  } else {
+    groups.df$Group <-  as.factor(groups)
+  }
+  
+  p <- ggtree(tr, ladderize = F)
+  # Add tip labels
+  p <- p  %<+% groups.df + geom_tiplab(aes(label = leafnames),
+                                       size = ccs.text.size,
+                                       offset = rownames.lab.offset)
+  # Add group colours
+  if (show.groups) {
+    cols_g <- brewer.pal(length(levels(groups.df$Group)), "Set3")
+    p <- p + geom_tippoint(aes(color = Group),
+                           shape = 15, size = 4) +
+             geom_tiplab(aes(label = Group), size = group.text.size,
+                  offset = group.lab.offset)
+    if (length(cols_g) == length(levels(groups.df$Group))) {
+      p <- p + scale_color_manual(values = cols_g)
+    }
+  }
+  # Add pmat heatmap
+  p <- gheatmap(p, pmat, 
+                offset = heatmap.offset,
+                colnames_angle = 90,
+                # colnames_offset_y = cols.names.offset,
+                colnames_position = "top",
+                hjust = 0,
+                width = heatmap.width,
+                font.size = ccs.text.size)
+  # heatmap colors
+  p <- p + scale_colour_viridis_c(aesthetics = "fill", 
+                                  na.value = "grey90",
+                                  limits = c(0, 1)) +
+    labs(fill = expression(P("same "*beta[v])))   +
+    theme(legend.position = "left",
+          legend.text = element_text(size = legend.text.size),
+          legend.title = element_text(size = legend.text.size),
+          legend.margin = margin(0, -30, 0, 0),
+          legend.box.margin = margin(0, 0, 0, 0),
+          plot.margin = unit(c(0.5, 0.5, -0.5, 0), "cm")) +
+    coord_cartesian(clip = "off")
+}
+
+
