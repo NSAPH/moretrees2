@@ -58,8 +58,9 @@ for (i in 1:3) {
 }
 p <- p + theme(plot.margin = unit(c(-0.3, -4.7, -0.3, -6.8), unit = "in"))
 p <- p + coord_cartesian(clip = "off")
+p <- p + scale_y_reverse()
 p <- p + geom_text(data = data.frame(x = node.pos + node.nudge + 0.13,
-                                     y = max(p$data$y) + 2,
+                                     y = min(p$data$y) - 2,
                                      lab = paste0("Level ", 1:4)),
                    aes(x = x, y = y, label = lab),
                    size = 5)
@@ -124,8 +125,9 @@ for (i in 1:3) {
 }
 p <- p + theme(plot.margin = unit(c(-0.3, -4.7, -0.3, -6.8), unit = "in"))
 p + coord_cartesian(clip = "off")
+p <- p + scale_y_reverse()
 p <- p + geom_text(data = data.frame(x = node.pos + node.nudge + 0.13,
-                                     y = max(p$data$y) + 2,
+                                     y = min(p$data$y) - 2,
                                      lab = paste0("Level ", 1:4)),
                    aes(x = x, y = y, label = lab),
                    size = 5)

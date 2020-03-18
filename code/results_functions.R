@@ -428,7 +428,7 @@ equal_betas_plot <- function(prob,
                 offset = heatmap.offset,
                 colnames_angle = 90,
                 # colnames_offset_y = cols.names.offset,
-                colnames_position = "top",
+                colnames_position = "bottom",
                 hjust = 0,
                 width = heatmap.width,
                 font.size = ccs.text.size)
@@ -444,6 +444,10 @@ equal_betas_plot <- function(prob,
           legend.box.margin = margin(0, 0, 0, 0),
           plot.margin = unit(c(0.5, 0.5, -0.5, 0), "cm")) +
     coord_cartesian(clip = "off")
+  p <- p + scale_y_reverse()
+  p <- p + guides(colour = guide_legend(order = 1), 
+                fill = guide_colourbar(order = 2))
+  return(p)
 }
 
 
