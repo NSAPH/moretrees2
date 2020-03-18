@@ -23,6 +23,8 @@ labels <- data.frame(node = names(V(tr)),
                      stringsAsFactors = F)
 labels <- merge(labels, ccs_labels, by.x = "nodename", by.y = "ccs_code",
                 all.x = T, all.y = F, sort = F)
+labels$label <- as.character(labels$label)
+labels$label[labels$node == "7.2.11"] <- "Heart failure and congestive heart failure"
 labels$label <- paste0(labels$nodename, ": ", labels$label)
 labels$nodename <- NULL
 
@@ -54,8 +56,13 @@ for (i in 1:3) {
                         fill = "white",
                         label.size = NA)
 }
-p <- p + theme(plot.margin = unit(c(0, -4.7, 0, -6.8), unit = "in"))
-p + coord_cartesian(clip = "off")
+p <- p + theme(plot.margin = unit(c(-0.3, -4.7, -0.3, -6.8), unit = "in"))
+p <- p + coord_cartesian(clip = "off")
+p <- p + geom_text(data = data.frame(x = node.pos + node.nudge + 0.13,
+                                     y = max(p$data$y) + 2,
+                                     lab = paste0("Level ", 1:4)),
+                   aes(x = x, y = y, label = lab),
+                   size = 5)
 
 pdf(file = "./figures/ccs_tree_cvd.pdf", width = 13, height = 15)
 p
@@ -75,6 +82,7 @@ tr <- induced_subgraph(tr, vids)
 ccs_labels <- read.csv("./data/Multi_Level_CCS_2015_cleaned/dxm_label_clean.csv")
 
 # Make horrible plot
+root <- names(igraph::V(tr))[igraph::degree(tr, mode = "in") == 0]
 V(tr)$levels <- as.numeric(igraph::distances(tr, v = root, to = V(tr), mode = "out") + 1)
 labels <- data.frame(node = names(V(tr)),
                      nodename = str_remove_all(names(V(tr)), "\\.0"), 
@@ -109,14 +117,19 @@ for (i in 1:3) {
   p <- p + geom_nodelab(aes_string(label = paste0("label.long", i)),
                         geom = "label",
                         hjust = 0,
-                        vjust = 1,
                         nudge_x = node.nudge[i],
                         angle = node.angle[i],
                         fill = "white",
                         label.size = NA)
 }
-p <- p + theme(plot.margin = unit(c(0, -4.7, 0, -6.8), unit = "in"))
+p <- p + theme(plot.margin = unit(c(-0.3, -4.7, -0.3, -6.8), unit = "in"))
 p + coord_cartesian(clip = "off")
+p <- p + geom_text(data = data.frame(x = node.pos + node.nudge + 0.13,
+                                     y = max(p$data$y) + 2,
+                                     lab = paste0("Level ", 1:4)),
+                   aes(x = x, y = y, label = lab),
+                   size = 5)
+
 
 pdf(file = "./figures/ccs_tree_resp.pdf", width = 14, height = 11)
 p
