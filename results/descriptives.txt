@@ -9,9 +9,17 @@ PM2.5 summary for cases:
   0.00522   6.68939   9.74169  11.13233  13.97700 174.94773 
 
 
+PM2.5 SD for cases:
+[1] 6.500602
+
+
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
   0.00764   6.67576   9.72100  11.11354  13.94784 183.62401 
+
+
+PM2.5 SD for controls:
+[1] 6.500189
 
 
 Case days with PM2.5 > 25:
@@ -41,9 +49,17 @@ PM2.5 summary for cases:
   0.01824   6.62659   9.60394  10.95624  13.71445 165.43865 
 
 
+PM2.5 SD for cases:
+[1] 6.389713
+
+
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
   0.00979   6.61008   9.57791  10.92676  13.67186 164.08389 
+
+
+PM2.5 SD for controls:
+[1] 6.378001
 
 
 Case days with PM2.5 > 25:

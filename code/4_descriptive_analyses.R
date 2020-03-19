@@ -13,7 +13,8 @@ cols.omit <- c("ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                "tmmx_lag01_case", "tmmx_lag01_control",
                "rmax_lag01_case", "rmax_lag01_control")
 cols.other <- c("id", "adate", "ssa_state_cd",
-          "race_gp", "sex_gp", "age_gp", "dual")
+          "race_gp", "sex_gp", "age_gp", "dual",
+          "ozone_lag01_case", "ozone_lag01_control")
 cols <- c(cols.other, cols.omit)
 
 # # Select states
@@ -56,8 +57,12 @@ cat("\n\nComplete cases for CVD = ", nrow(dt_cvd), "(", 100 * nrow(dt_cvd) / n_c
 # CVD: median PM2.5 exposure by case status
 cat("\n\nPM2.5 summary for cases:\n")
 summary(dt_cvd$pm25_lag01_case)
+cat("\n\nPM2.5 SD for cases:\n")
+sd(dt_cvd$pm25_lag01_case)
 cat("\n\nPM2.5 summary for controls:\n")
 summary(dt_cvd$pm25_lag01_control)
+cat("\n\nPM2.5 SD for controls:\n")
+sd(dt_cvd$pm25_lag01_control)
 
 # CVD: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")
@@ -85,8 +90,12 @@ cat("\n\nComplete cases for respiratory disease = ", nrow(dt_resp), "(", 100 * n
 # Respiratory: median PM2.5 exposure by case status
 cat("\n\nPM2.5 summary for cases:\n")
 summary(dt_resp$pm25_lag01_case)
+cat("\n\nPM2.5 SD for cases:\n")
+sd(dt_resp$pm25_lag01_case)
 cat("\n\nPM2.5 summary for controls:\n")
 summary(dt_resp$pm25_lag01_control)
+cat("\n\nPM2.5 SD for controls:\n")
+sd(dt_resp$pm25_lag01_control)
 
 # Respiratory: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")

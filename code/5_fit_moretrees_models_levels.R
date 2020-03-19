@@ -8,9 +8,9 @@ require(moretrees)
 require(fst)
 
 # Key parameters
-dataset <- "cvd" # "cvd" or "resp"
-split <- "0" # "0", "25", or "35"
-hyper_method <- "EB" # "full" or "EB"
+dataset <- "resp" # "cvd" or "resp"
+split <- "25" # "0", "25", or "35"
+hyper_method <- "full" # "full" or "EB"
 
 # Controls
 tol <- 1E-8 
@@ -94,6 +94,10 @@ tr <- induced_subgraph(graph = tr, vids = vids)
 # check again
 setequal(unique(dt$ccs_added_zeros), names(V(tr))[V(tr)$leaf])
 
+# Create hyperparameter levels
+V(tr)$levels <- 1
+V(tr)$levels[V(tr)$leaf] <- 2
+
 # Model 1: no covariate control ------------------------------------------------------------------------------------------
 mod1 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
                              W = NULL,
@@ -115,7 +119,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod1_split", split, "_", dataset, "_", hyper_method, ".RData"))
+save(moretrees_results, file = paste0("./results/mod1_split", split, "_", dataset, "_", hyper_method, "2.RData"))
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 mod2 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
@@ -138,7 +142,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_", hyper_method, ".RData"))
+save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_", hyper_method, "2.RData"))
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -193,6 +197,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_", hyper_method, ".RData"))
+save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_", hyper_method, "2.RData"))
 
 
