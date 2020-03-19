@@ -450,4 +450,16 @@ equal_betas_plot <- function(prob,
   return(p)
 }
 
-
+## Simulate groups from prior
+sim.prior.fun <- function(levels, A_leaf) {
+  rho <- runif(max(levels))
+  s <- runif(length(levels)) <= rho[levels]
+  gamma <- numeric(length = length(levels)) + 0
+  gamma[s] <- rnorm(sum(s), sd = 10)
+  beta <- as.numeric(A_leaf %*% gamma)
+  groups <- as.integer(as.factor(beta))
+  groups.size <- table(groups)
+  return(data.frame(n.groups = max(groups), 
+           mean.size = mean(groups.size),
+           median.size = median(groups.size)))
+}
