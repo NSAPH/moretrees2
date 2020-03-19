@@ -81,7 +81,7 @@ for (i in 1:length(dataset)) { # datasets
             OR_xtable <- xtable(OR_est, align = align,
                                 digits = 3, display = display)
             names(OR_xtable) <- tabnames[-c(2, 3, 4)]
-            tabfile <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_ml_table.tex")
+            tabfile <- paste0("./figures/mod", mod, "_split", spl, "_", ds, "_", hm, "_ml_table2.tex")
             write(print(OR_xtable, floating = FALSE, include.rownames = FALSE,
                         sanitize.text.function = function(x) x),
                   file = tabfile)
@@ -106,27 +106,6 @@ for (i in 1:length(dataset)) { # datasets
             }
       }
    }
-}
-
-# Plot prior
-for (i in 1:2) {
-   ds <- dataset[i]
-   load(file = paste0("./results/mod", mod, "_split", spl, "_", ds, "_", hm, ".Rdata"))
-   # Get tree
-   tr <- ccs_tree(root[i])$tr
-   vids <- unlist(moretrees_results$beta_moretrees$outcomes)
-   vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
-   vids <- Reduce(union, vids)
-   tr <- induced_subgraph(tr, vids)
-   # Create matrix plot
-   rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
-   pltfile3 <- paste0("./figures/prior_", ds, ".pdf")
-   pdf(file = pltfile3, width = 12, height = 9.5)
-   print(equal_betas_plot(prob = rep(0.5, length(moretrees_results$mod$vi_params$prob)),
-                          show.groups = F,
-                          tr = tr,
-                          rownames.lab.offset = rownames.lab.offset))
-   dev.off()
 }
 
 # Plot Bayes' factors
