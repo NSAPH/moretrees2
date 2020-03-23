@@ -10,11 +10,11 @@ require(fst)
 # Key parameters
 dataset <- "resp" # "cvd" or "resp"
 split <- "25" # "0", "25", or "35"
-hyper_method <- "full" # "full" or "EB"
+hyper_method <- "EB" # "full" or "EB"
 
 # Controls
 tol <- 1E-8 
-tol_hyper <- 1E-5
+tol_hyper <- 1E-4
 max_iter <- 1E5
 update_hyper_freq <- 20
 
