@@ -4,6 +4,43 @@ Total first admissions for CVD =  16154061
 
 Complete cases for CVD =  16007293 ( 99.09145 %)
 
+Case days with PM2.5 > 25:
+[1] 0.03677105
+
+
+Control days with PM2.5 > 25:
+[1] 0.03669003
+
+
+Case days with PM2.5 > 35:
+
+
+Total respiratory admissions in study period =  16073174
+
+Total first admissions for respiratory disease =  8796772
+
+Complete cases for respiratory disease =  8690837 ( 98.79575 %)
+
+Case days with PM2.5 > 25:
+[1] 0.03376038
+
+
+Control days with PM2.5 > 25:
+[1] 0.03343913
+
+
+Case days with PM2.5 > 35:
+[1] 0.007536788
+
+
+Control days with PM2.5 > 35:
+[1] 0.007423796
+
+
+Table 1 data------------------------------------------------------
+
+CVD-------------------------------------------
+
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
   0.00522   6.68939   9.74169  11.13233  13.97700 174.94773 
@@ -22,27 +59,60 @@ PM2.5 SD for controls:
 [1] 6.500189
 
 
-Case days with PM2.5 > 25:
-[1] 0.03677105
+Temperature summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -26.43   11.85   21.09   19.45   27.95   49.48 
 
 
-Control days with PM2.5 > 25:
-[1] 0.03669003
+Temperature SD for cases:
+[1] 10.58412
 
 
-Case days with PM2.5 > 35:
-[1] 0.007912456
+Temperature summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -26.87   11.77   21.06   19.41   27.95   50.35 
 
 
-Control days with PM2.5 > 35:
-[1] 0.007900899
+Temperature SD for controls:
+[1] 10.62539
 
 
-Total respiratory admissions in study period =  16073174
+Humidity summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.871  79.763  89.290  86.146  96.510 100.000 
 
-Total first admissions for respiratory disease =  8796772
 
-Complete cases for respiratory disease =  8690837 ( 98.79575 %)
+Humidity SD for cases:
+[1] 13.39202
+
+
+Humidity summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.906  79.753  89.287  86.143  96.511 100.000 
+
+
+Humidity SD for controls:
+[1] 13.3914
+
+
+Ozone summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   29.43   37.45   38.59   46.75  179.79 
+
+
+Ozone SD for cases:
+[1] 12.81915
+
+
+Ozone summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   29.42   37.42   38.58   46.73  185.91 
+
+
+Ozone SD for controls:
+[1] 12.81863
+
+Respiratory---------------------------------------------
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
@@ -62,23 +132,61 @@ PM2.5 SD for controls:
 [1] 6.378001
 
 
-Case days with PM2.5 > 25:
-[1] 0.03376038
+Temperature summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -25.42   10.25   19.33   18.22   26.88   48.81 
 
 
-Control days with PM2.5 > 25:
-[1] 0.03343913
+Temperature SD for cases:
+[1] 10.61827
 
 
-Case days with PM2.5 > 35:
-[1] 0.007536788
+Temperature summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ -24.67   10.14   19.28   18.15   26.87   50.14 
 
 
-Control days with PM2.5 > 35:
-[1] 0.007423796
+Temperature SD for controls:
+[1] 10.68445
 
 
-Table 1 data------------------------------------------------------
+Humidity summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.818  79.145  88.702  85.703  96.052 100.000 
+
+
+Humidity SD for cases:
+[1] 13.37813
+
+
+Humidity summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.993  79.058  88.646  85.645  96.021 100.000 
+
+
+Humidity SD for controls:
+[1] 13.40205
+
+
+Ozone summary for cases:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   28.93   36.55   37.73   45.54  177.71 
+
+
+Ozone SD for cases:
+[1] 12.4822
+
+
+Ozone summary for controls:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   28.92   36.52   37.71   45.50  177.84 
+
+
+Ozone SD for controls:
+[1] 12.45985
+
+
+Table 2 data------------------------------------------------------
 
 
 
