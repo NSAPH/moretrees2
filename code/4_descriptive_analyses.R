@@ -54,25 +54,12 @@ cat("\n\nTotal first admissions for CVD = ", n_cvd)
 dt_cvd <- na.omit(dt_cvd, cols = cols.omit)
 cat("\n\nComplete cases for CVD = ", nrow(dt_cvd), "(", 100 * nrow(dt_cvd) / n_cvd, "%)")
 
-# CVD: median PM2.5 exposure by case status
-cat("\n\nPM2.5 summary for cases:\n")
-summary(dt_cvd$pm25_lag01_case)
-cat("\n\nPM2.5 SD for cases:\n")
-sd(dt_cvd$pm25_lag01_case)
-cat("\n\nPM2.5 summary for controls:\n")
-summary(dt_cvd$pm25_lag01_control)
-cat("\n\nPM2.5 SD for controls:\n")
-sd(dt_cvd$pm25_lag01_control)
-
 # CVD: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")
 mean(dt_cvd$pm25_lag01_case > 25)
 cat("\n\nControl days with PM2.5 > 25:\n")
 mean(dt_cvd$pm25_lag01_control > 25)
 cat("\n\nCase days with PM2.5 > 35:\n")
-mean(dt_cvd$pm25_lag01_case > 35)
-cat("\n\nControl days with PM2.5 > 35:\n")
-mean(dt_cvd$pm25_lag01_control > 35)
 
 # Respiratory disease ------------------------------------------
 cat("\n\nTotal respiratory admissions in study period = ", nrow(dt_resp))
@@ -87,16 +74,6 @@ cat("\n\nTotal first admissions for respiratory disease = ", n_resp)
 dt_resp <- na.omit(dt_resp, cols = cols.omit)
 cat("\n\nComplete cases for respiratory disease = ", nrow(dt_resp), "(", 100 * nrow(dt_resp) / n_resp, "%)")
 
-# Respiratory: median PM2.5 exposure by case status
-cat("\n\nPM2.5 summary for cases:\n")
-summary(dt_resp$pm25_lag01_case)
-cat("\n\nPM2.5 SD for cases:\n")
-sd(dt_resp$pm25_lag01_case)
-cat("\n\nPM2.5 summary for controls:\n")
-summary(dt_resp$pm25_lag01_control)
-cat("\n\nPM2.5 SD for controls:\n")
-sd(dt_resp$pm25_lag01_control)
-
 # Respiratory: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")
 mean(dt_resp$pm25_lag01_case > 25)
@@ -110,6 +87,94 @@ mean(dt_resp$pm25_lag01_control > 35)
 # Table 1 data
 
 cat("\n\nTable 1 data------------------------------------------------------\n\n")
+
+cat("\n\nCVD------------------------------------------------------\n\n")
+
+# CVD: summary of PM2.5 exposure by case status
+cat("\n\nPM2.5 summary for cases:\n")
+summary(dt_cvd$pm25_lag01_case)
+cat("\n\nPM2.5 SD for cases:\n")
+sd(dt_cvd$pm25_lag01_case)
+cat("\n\nPM2.5 summary for controls:\n")
+summary(dt_cvd$pm25_lag01_control)
+cat("\n\nPM2.5 SD for controls:\n")
+sd(dt_cvd$pm25_lag01_control)
+
+# CVD: summary of temperature by case status
+cat("\n\nTemperature summary for cases:\n")
+summary(dt_cvd$tmmx_lag01_case - 273.15)
+cat("\n\nTemperature SD for cases:\n")
+sd(dt_cvd$tmmx_lag01_case - 273.15)
+cat("\n\nTemperature summary for controls:\n")
+summary(dt_cvd$tmmx_lag01_control - 273.15)
+cat("\n\nTemperature SD for controls:\n")
+sd(dt_cvd$tmmx_lag01_control - 273.15)
+
+# CVD: summary of humidity by case status
+cat("\n\nHumidity summary for cases:\n")
+summary(dt_cvd$rmax_lag01_case)
+cat("\n\nHumidity SD for cases:\n")
+sd(dt_cvd$rmax_lag01_case)
+cat("\n\nHumidity summary for controls:\n")
+summary(dt_cvd$rmax_lag01_control)
+cat("\n\nHumidity SD for controls:\n")
+sd(dt_cvd$rmax_lag01_control)
+
+# CVD: summary of ozone by case status
+cat("\n\nOzone summary for cases:\n")
+summary(dt_cvd$ozone_lag01_case)
+cat("\n\nOzone SD for cases:\n")
+sd(dt_cvd$ozone_lag01_case)
+cat("\n\nOzone summary for controls:\n")
+summary(dt_cvd$ozone_lag01_control)
+cat("\n\nOzone SD for controls:\n")
+sd(dt_cvd$ozone_lag01_control)
+
+cat("\n\nRespiratory------------------------------------------------------\n\n")
+
+# Respiratory: summary of PM2.5 exposure by case status
+cat("\n\nPM2.5 summary for cases:\n")
+summary(dt_resp$pm25_lag01_case)
+cat("\n\nPM2.5 SD for cases:\n")
+sd(dt_resp$pm25_lag01_case)
+cat("\n\nPM2.5 summary for controls:\n")
+summary(dt_resp$pm25_lag01_control)
+cat("\n\nPM2.5 SD for controls:\n")
+sd(dt_resp$pm25_lag01_control)
+
+# resp: summary of temperature by case status
+cat("\n\nTemperature summary for cases:\n")
+summary(dt_resp$tmmx_lag01_case - 273.15)
+cat("\n\nTemperature SD for cases:\n")
+sd(dt_resp$tmmx_lag01_case - 273.15)
+cat("\n\nTemperature summary for controls:\n")
+summary(dt_resp$tmmx_lag01_control - 273.15)
+cat("\n\nTemperature SD for controls:\n")
+sd(dt_resp$tmmx_lag01_control - 273.15)
+
+# resp: summary of humidity by case status
+cat("\n\nHumidity summary for cases:\n")
+summary(dt_resp$rmax_lag01_case)
+cat("\n\nHumidity SD for cases:\n")
+sd(dt_resp$rmax_lag01_case)
+cat("\n\nHumidity summary for controls:\n")
+summary(dt_resp$rmax_lag01_control)
+cat("\n\nHumidity SD for controls:\n")
+sd(dt_resp$rmax_lag01_control)
+
+# resp: summary of ozone by case status
+cat("\n\nOzone summary for cases:\n")
+summary(dt_resp$ozone_lag01_case)
+cat("\n\nOzone SD for cases:\n")
+sd(dt_resp$ozone_lag01_case)
+cat("\n\nOzone summary for controls:\n")
+summary(dt_resp$ozone_lag01_control)
+cat("\n\nOzone SD for controls:\n")
+sd(dt_resp$ozone_lag01_control)
+
+# Table 2 data
+
+cat("\n\nTable 2 data------------------------------------------------------\n\n")
 
 cat("\n\nCVD:\n")
 
