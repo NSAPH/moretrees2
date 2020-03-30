@@ -451,8 +451,13 @@ equal_betas_plot <- function(prob,
 }
 
 ## Simulate groups from prior
-sim.prior.fun <- function(levels, A_leaf) {
-  rho <- runif(max(levels))
+sim.prior.fun <- function(levels, A_leaf, 
+                          a_rho = rep(1, max(levels)), 
+                          b_rho = rep(1, max(levels))) {
+  rho <- numeric(max(levels))
+  for (l in 1:max(levels)) {
+    rho[l] <- rbeta(1, shape1 = a_rho[l], shape2 = b_rho[l])
+  }
   s <- runif(length(levels)) <= rho[levels]
   gamma <- numeric(length = length(levels)) + 0
   gamma[s] <- rnorm(sum(s), sd = 10)

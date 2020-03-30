@@ -162,6 +162,8 @@ for (i in 1:2) {
 
 # prior simulations
 Nsims <- 100000
+dataset <- c("cvd", "resp")
+root <- c("7", "8")
 require(doParallel)
 registerDoParallel(cores = detectCores())
 require(foreach)
@@ -175,7 +177,9 @@ for (i in 1:2) {
   vids <- Reduce(union, vids)
   tr <- induced_subgraph(tr, vids)
   # Get levels
-  levels <- as.numeric(igraph::distances(tr, v = root[i], to = V(tr), mode = "out") + 1)
+  # levels <- as.numeric(igraph::distances(tr, v = root[i], to = V(tr), mode = "out") + 1)
+  levels <- rep(1, length(V(tr)))
+  levels[V(tr)$leaf] <- 2
   
   # Get ancestor matrix
   A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -185,7 +189,10 @@ for (i in 1:2) {
   A_leaf <- A[V(tr)$leaf, ]
 
   # Run sims
-  simsout <- foreach(i = 1:Nsims, .combine = rbind) %dopar% sim.prior.fun(levels, A_leaf)
+  simsout <- foreach(i = 1:Nsims, .combine = rbind) %dopar% 
+    sim.prior.fun(levels, A_leaf, a_rho = c(0.9, 0.5),
+                  b_rho = c(3 , 2))
+  # plot(x, dbeta(x, shape1 = 0.5, shape2 = 2), type = "l")
   
   # Make plot
   if (i == 1) breaks = c(1, 20, 40, nrow(A_leaf))
