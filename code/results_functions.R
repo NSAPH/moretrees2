@@ -32,10 +32,11 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   k <- length(moretrees_results$mod$vi_params$mu[[1]])
   cols <- unlist(lapply(1:k, function(k) paste0(c("est", "cil", "ciu"), k)))
   beta_type <- paste0("beta_", type)
-  OR_est <- exp(moretrees_results[beta_type][[1]][ , cols] * mult)
-  OR_est$outcomes <- moretrees_results$beta_moretrees$outcomes
-  OR_est$n_obs <- moretrees_results$beta_moretrees$n_obs
-  vids <- unlist(OR_est$outcomes)
+  est <- exp(moretrees_results[beta_type][[1]][ , cols] * mult)
+  est <- (est - 1) * 100
+  est$outcomes <- moretrees_results$beta_moretrees$outcomes
+  est$n_obs <- moretrees_results$beta_moretrees$n_obs
+  vids <- unlist(est$outcomes)
   
   # Map CCS codes to diseases --------------------------------------------------
   ccs_tr <- ccs_tree(root)
@@ -51,12 +52,12 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
   
   # Map outcome groups to disease names -----------------------------------------
   frmt <- paste0("%.", digits, "f")
-  OR_est$long_label <- character(length = nrow(OR_est))
-  OR_est$short_label <- character(length = nrow(OR_est))
-  for (g in 1:nrow(OR_est)) {
-    ccs_g <- ccs[ccs$ccs_added_zeros %in% OR_est$outcomes[[g]], ]
+  est$long_label <- character(length = nrow(est))
+  est$short_label <- character(length = nrow(est))
+  for (g in 1:nrow(est)) {
+    ccs_g <- ccs[ccs$ccs_added_zeros %in% est$outcomes[[g]], ]
     ccs_g$label <- as.character(ccs_g$label)
-    OR_est$long_label[g] <- collapse_labels(ccs_g)
+    est$long_label[g] <- collapse_labels(ccs_g)
     # Collapse siblings
     i <- 1
     while (i <= nrow(ccs_g)) {
@@ -85,19 +86,19 @@ ccs_table <- function(root, moretrees_results, digits = 3, mult = 10,
       }
     }
     # Collapse simplified labels into one string
-    OR_est$short_label[g] <- collapse_labels(ccs_g)
+    est$short_label[g] <- collapse_labels(ccs_g)
     # Collapse OR and CI into one string
     for (j in 1:k) {
-      est_frmt <- sprintf(frmt, OR_est[g, paste0("est", j)])
-      cil_frmt <- sprintf(frmt, OR_est[g, paste0("cil", j)])
-      ciu_frmt <- sprintf(frmt, OR_est[g, paste0("ciu", j)])
-      OR_est[g, paste0("ci_est", j)] <- paste0(est_frmt," (",cil_frmt,", ",ciu_frmt,")")
+      est_frmt <- sprintf(frmt, est[g, paste0("est", j)])
+      cil_frmt <- sprintf(frmt, est[g, paste0("cil", j)])
+      ciu_frmt <- sprintf(frmt, est[g, paste0("ciu", j)])
+      est[g, paste0("ci_est", j)] <- paste0(est_frmt," (",cil_frmt,", ",ciu_frmt,")")
     }
   }
-  OR_est$n_outcomes <- sapply(OR_est$outcomes, length)
-  OR_est$group <- 1:nrow(OR_est)
+  est$n_outcomes <- sapply(est$outcomes, length)
+  est$group <- 1:nrow(est)
   
-  return(OR_est[ , c("group", "short_label", "long_label",
+  return(est[ , c("group", "short_label", "long_label",
                      "n_outcomes", "n_obs", paste0("ci_est", 1:k))])
 }
 
@@ -222,7 +223,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
   lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
             max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
   x.ticks <- round(max(abs(lims)) * 3 / 4, digits = digits)
-  x.grid <- x.ticks * c(-4/3, -1, -2/3, -1/3, 1/3, 2/3, 1, 4/3)
+  x.grid <- x.ticks * c(-3/2, -1, -1/2, 1/2, 1, 3/2)
   layout <- integer()
   # Make x axis plot
   xaxis.plt <- local({
@@ -313,10 +314,6 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                      lwd = 0.2, lty = 2) +
           geom_vline(xintercept = x.grid[6], color = "grey70",
                      lwd = 0.2, lty = 2) +
-          geom_vline(xintercept = x.grid[7], color = "grey70",
-                     lwd = 0.2, lty = 2) +
-          geom_vline(xintercept = x.grid[8], color = "grey70",
-                     lwd = 0.2, lty = 2) +
           geom_point(aes(x = get(x), y = y.height)) +
           geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
                              y = y.height), height = errorbar.height) +
@@ -344,26 +341,39 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                padding = unit(0, "line"))
 }
 
-equal_betas <- function(v1, v2, prob, ancestors) {
+equal_betas <- function(v1, v2, prob, levels, a_rho, b_rho, ancestors) {
   anc1 <- ancestors[[v1]]
   anc2 <- ancestors[[v2]]
   non_common_anc <- setdiff(union(anc1, anc2),
                             intersect(anc1, anc2))
-  return(prod(1 - prob[non_common_anc]))
+  if (!is.null(prob)){
+    p_return <- prod(1 - prob[non_common_anc])
+  } else {
+    n_l <- sapply(1:max(levels), function(l) sum(levels[non_common_anc] == l))
+    p_return <- 1
+    for (l in 1:length(n_l)) {
+      if (n_l[l] > 0) {
+        r <- 0:n_l[l]
+        p_return <- p_return * prod((b_rho[l] + r) / (a_rho[l] + b_rho[l] + r))
+      }
+    }
+  }
+  return(p_return)
 }
 
-equal_betas_mat <- function(leaves, prob, tr) {
+equal_betas_mat <- function(leaves, prob, levels, a_rho, b_rho, tr) {
   # reorder nodes
   nodes <- names(igraph::V(tr))
   leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
-  nodes <- c(nodes[!(nodes %in% leaves)], leaves)
-  names(prob) <- nodes
+  # nodes <- c(nodes[!(nodes %in% leaves)], leaves)
+  # names(prob) <- nodes
+  # levels <- levels[match(names(igraph::V(tr)), nodes)]
   pL <- length(leaves)
   
   # get ancestors
   d <- igraph::diameter(tr)
   ancestors <- igraph::ego(tr, order = d + 1, nodes = leaves, mode = "in")
-  ancestors <- sapply(ancestors, names, simplify = F)
+  ancestors <- lapply(ancestors, names)
   ancestors <- sapply(ancestors, function(a, nodes) which(nodes %in% a), nodes = nodes,
                       simplify = F)
   names(ancestors) <- leaves
@@ -375,7 +385,9 @@ equal_betas_mat <- function(leaves, prob, tr) {
   for (v1 in 1:(length(leaves) - 1)) {
     for (v2 in (v1 + 1):length(leaves)) {
       pmat[v1, v2] <- equal_betas(v1 = leaves[v1], v2 = leaves[v2],
-                                  prob = prob, ancestors = ancestors)
+                                  prob = prob, levels = levels,
+                                  a_rho = a_rho, b_rho = b_rho,
+                                  ancestors = ancestors)
       pmat[v2, v1] <- pmat[v1, v2]
     }
   }
@@ -383,8 +395,11 @@ equal_betas_mat <- function(leaves, prob, tr) {
   return(pmat)
 }
 
-equal_betas_plot <- function(prob,
+equal_betas_plot <- function(prob = NULL,
                              groups = NULL,
+                             levels = NULL,
+                             a_rho = NULL,
+                             b_rho = NULL,
                              tr,
                              ccs.text.size = 4,
                              group.text.size = 4,
@@ -396,8 +411,15 @@ equal_betas_plot <- function(prob,
                              show.groups = T
 ) {
   
-  leaves <- names(V(tr))[V(tr)$leaf]
-  pmat <- equal_betas_mat(leaves, prob, tr)
+  leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+  if (!(is.null(prob)) & is.null(levels)) {
+    # Set default levels if null
+    levels <- rep(1, length(V(tr)))
+    levels[names(igraph::V(tr)) %in% leaves] <- 2
+  }
+  pmat <- equal_betas_mat(leaves = leaves, prob = prob, 
+                          levels = levels, a_rho = a_rho, b_rho = b_rho, 
+                          tr = tr)
   colnames(pmat) <- str_remove_all(colnames(pmat), "\\.0")
   groups.df <- data.frame(leaves = leaves, 
                           leafnames = str_remove_all(leaves, "\\.0"))
