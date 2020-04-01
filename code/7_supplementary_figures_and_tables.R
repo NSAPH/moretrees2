@@ -1,8 +1,7 @@
-require(ggtree)
-require(igraph)
+source("./code/results_functions.R")
 
 ### CVD tree ----------------------------------------------------------------
-load(file = paste0("./results/mod1_split0_cvd_full.Rdata"))
+load(file = paste0("./results/mod1_split0_cvd.Rdata"))
 
 # Get tree
 tr <- ccs_tree("7")$tr
@@ -70,7 +69,7 @@ p
 dev.off()
 
 ### RD tree ----------------------------------------------------------------
-load(file = paste0("./results/mod1_split0_resp_full.Rdata"))
+load(file = paste0("./results/mod1_split0_resp.Rdata"))
 
 # Get tree
 tr <- ccs_tree("8")$tr
@@ -140,85 +139,106 @@ dev.off()
 # Plot prior ---------------------------------------------------------------------
 dataset <- c("cvd", "resp")
 root <- c("7", "8")
+a_rho <- as.matrix(rbind(c(1, 1), c(0.9, 0.5)))
+b_rho <- as.matrix(rbind(c(1, 1), c(3 , 2)))
+prior <- c("main", "sens")
 for (i in 1:2) {
-  ds <- dataset[i]
-  load(file = paste0("./results/mod1_split0_", ds, "_full.Rdata"))
-  # Get tree
-  tr <- ccs_tree(root[i])$tr
-  vids <- unlist(moretrees_results$beta_moretrees$outcomes)
-  vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
-  vids <- Reduce(union, vids)
-  tr <- induced_subgraph(tr, vids)
-  # Create matrix plot
-  rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
-  pltfile3 <- paste0("./figures/prior_", ds, ".pdf")
-  pdf(file = pltfile3, width = 12, height = 9.5)
-  print(equal_betas_plot(prob = rep(1 / sqrt(6), length(moretrees_results$mod$vi_params$prob)),
-                         show.groups = F,
-                         tr = tr,
-                         rownames.lab.offset = rownames.lab.offset))
-  dev.off()
+  for (j in 1:2) {
+    ds <- dataset[i]
+    load(file = paste0("./results/mod1_split0_", ds, ".Rdata"))
+    
+    # Get tree
+    tr <- ccs_tree(root[i])$tr
+    vids <- unlist(moretrees_results$beta_moretrees$outcomes)
+    vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
+    vids <- Reduce(union, vids)
+    tr <- induced_subgraph(tr, vids)
+    
+    # Create matrix plot
+    rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
+    pltfile3 <- paste0("./figures/prior_", ds, "_", prior[j],".pdf")
+    pdf(file = pltfile3, width = 12, height = 9.5)
+    print(equal_betas_plot(prob = NULL,
+                           show.groups = F,
+                           a_rho = a_rho[j, ], b_rho = b_rho[j, ],
+                           tr = tr,
+                           rownames.lab.offset = rownames.lab.offset))
+    dev.off()
+  }
 }
 
 # prior simulations
 Nsims <- 100000
+dataset <- c("cvd", "resp")
+root <- c("7", "8")
+a_rho <- as.matrix(rbind(c(1, 1), c(0.9, 0.5)))
+b_rho <- as.matrix(rbind(c(1, 1), c(3 , 2)))
+prior <- c("main", "sens")
 require(doParallel)
 registerDoParallel(cores = detectCores())
 require(foreach)
-for (i in 1:2) {
-  ds <- dataset[i]
-  load(file = paste0("./results/mod1_split0_", ds, "_full.Rdata"))
-  # Get tree
-  tr <- ccs_tree(root[i])$tr
-  vids <- unlist(moretrees_results$beta_moretrees$outcomes)
-  vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
-  vids <- Reduce(union, vids)
-  tr <- induced_subgraph(tr, vids)
-  # Get levels
-  levels <- as.numeric(igraph::distances(tr, v = root[i], to = V(tr), mode = "out") + 1)
-  
-  # Get ancestor matrix
-  A <- igraph::as_adjacency_matrix(tr, sparse = T)
-  A <- Matrix::expm(Matrix::t(A))
-  A[A > 0 ] <- 1 
-  A <- Matrix::Matrix(A, sparse = T)
-  A_leaf <- A[V(tr)$leaf, ]
-
-  # Run sims
-  simsout <- foreach(i = 1:Nsims, .combine = rbind) %dopar% sim.prior.fun(levels, A_leaf)
-  
-  # Make plot
-  if (i == 1) breaks = c(1, 20, 40, nrow(A_leaf))
-  if (i == 2) breaks = c(1, 10, 20, nrow(A_leaf))
-  plt_n <- ggplot(simsout, aes(x = n.groups, y = (..count..)/sum(..count..))) +
-    geom_bar() +
-    theme_minimal() +
-    scale_x_continuous(breaks = breaks,
-                       limits = c(0, nrow(A_leaf) + 1)) +
-    xlab("Number of Groups") +
-    ylab("Prior Probability")
-  
-  # Median conditional on number of groups
-  if (i == 1) {
-    breaks = c(0, 5, 10, 20, 58)
-    labels = c("1 to 5", "6 to 10", "11 to 20", "21 to 57")
+for (j in 1:2) {
+  for (i in 1:2) {
+    ds <- dataset[i]
+    load(file = paste0("./results/mod1_split0_", ds, ".Rdata"))
+    
+    # Get tree
+    tr <- ccs_tree(root[i])$tr
+    vids <- unlist(moretrees_results$beta_moretrees$outcomes)
+    vids <- ego(graph = tr, order = diameter(tr) + 10, nodes = vids, mode = "in")
+    vids <- Reduce(union, vids)
+    tr <- induced_subgraph(tr, vids)
+    
+    # Get levels
+    levels <- rep(1, length(V(tr)))
+    levels[V(tr)$leaf] <- 2
+    
+    # Get ancestor matrix
+    A <- igraph::as_adjacency_matrix(tr, sparse = T)
+    A <- Matrix::expm(Matrix::t(A))
+    A[A > 0 ] <- 1 
+    A <- Matrix::Matrix(A, sparse = T)
+    A_leaf <- A[V(tr)$leaf, ]
+    
+    # Run sims
+    simsout <- foreach(i = 1:Nsims, .combine = rbind) %dopar% 
+      sim.prior.fun(levels, A_leaf, a_rho = a_rho[j, ],
+                    b_rho = b_rho[j, ])
+    # plot(x, dbeta(x, shape1 = 0.5, shape2 = 2), type = "l")
+    
+    # Make plot
+    if (i == 1) breaks = c(1, 20, 40, nrow(A_leaf))
+    if (i == 2) breaks = c(1, 10, 20, nrow(A_leaf))
+    plt_n <- ggplot(simsout, aes(x = n.groups, y = (..count..)/sum(..count..))) +
+      geom_bar() +
+      theme_minimal() +
+      scale_x_continuous(breaks = breaks,
+                         limits = c(0, nrow(A_leaf) + 1)) +
+      xlab("Number of Groups") +
+      ylab("Prior Probability")
+    
+    # Median conditional on number of groups
+    if (i == 1) {
+      breaks = c(0, 5, 10, 20, 58)
+      labels = c("1 to 5", "6 to 10", "11 to 20", "21 to 57")
+    }
+    if (i == 2) {
+      breaks = c(0, 5, 10, 20, 32)
+      labels = c("1 to 5", "6 to 10", "11 to 20", "21 to 32")
+    }
+    simsout$n.groups.cat <- cut(x = simsout$n.groups, breaks = breaks)
+    
+    # Mean conditional on number of groups
+    plt_med <- ggplot(simsout, aes(x = n.groups.cat, y = mean.size / median.size)) +
+      geom_boxplot() + scale_y_continuous(trans = "log10") +
+      xlab("Number of Groups") +
+      ylab("Mean / Median Group Size") +
+      scale_x_discrete(labels = labels) + 
+      theme_minimal()
+    
+    pdf(file = paste0("./figures/prior_", dataset[i], "_groups_", prior[j],".pdf"),
+        width = 8, height = 3)
+    grid.arrange(plt_n, plt_med, nrow = 1)
+    dev.off()
   }
-  if (i == 2) {
-    breaks = c(0, 5, 10, 20, 32)
-    labels = c("1 to 5", "6 to 10", "11 to 20", "21 to 32")
-  }
-  simsout$n.groups.cat <- cut(x = simsout$n.groups, breaks = breaks)
-  
-  # Mean conditional on number of groups
-  plt_med <- ggplot(simsout, aes(x = n.groups.cat, y = mean.size / median.size)) +
-    geom_boxplot() + scale_y_continuous(trans = "log10") +
-    xlab("Number of Groups") +
-    ylab("Mean / Median Group Size") +
-    scale_x_discrete(labels = labels) + 
-    theme_minimal()
-  
-  pdf(file = paste0("./figures/prior_", dataset[i], "_groups.pdf"),
-      width = 8, height = 3)
-  grid.arrange(plt_n, plt_med, nrow = 1)
-  dev.off()
 }
