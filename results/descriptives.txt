@@ -39,7 +39,11 @@ Control days with PM2.5 > 35:
 
 Table 1 data------------------------------------------------------
 
-CVD-------------------------------------------
+
+
+CVD------------------------------------------------------
+
+
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
@@ -112,7 +116,10 @@ Ozone summary for controls:
 Ozone SD for controls:
 [1] 12.81863
 
-Respiratory---------------------------------------------
+
+Respiratory------------------------------------------------------
+
+
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
