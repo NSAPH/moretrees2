@@ -8,8 +8,8 @@ require(moretrees)
 require(fst)
 
 # Key parameters
-dataset <- "cvd" # "cvd" or "resp"
-split <- "25" # "0" or "25"
+dataset <- "resp" # "cvd" or "resp"
+split <- "0" # "0" or "25"
 
 # Prior parameters
 a <- c(0.9, 0.5)
@@ -107,7 +107,7 @@ mod1 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE])
                              tr = tr,
                              nrestarts = 1,
                              print_freq = 1,  
-                             get_ml = TRUE)
+                             get_ml = FALSE)
 
 # Delete g
 moretrees_results <- mod1
@@ -137,7 +137,7 @@ mod2 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE])
                              tr = tr,
                              nrestarts = 1,
                              print_freq = 1,  
-                             get_ml = TRUE)
+                             get_ml = FALSE)
 
 # Delete g
 moretrees_results <- mod2
@@ -196,7 +196,7 @@ mod3 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE])
                              tr = tr,
                              nrestarts = 1,
                              print_freq = 1,  
-                             get_ml = TRUE)
+                             get_ml = FALSE)
 
 # Delete g
 moretrees_results <- mod3

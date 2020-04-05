@@ -8,8 +8,8 @@ require(moretrees)
 require(fst)
 
 # Key parameters
-dataset <- "cvd" # "cvd" or "resp"
-split <- "25" # "0" or "25"
+dataset <- "resp" # "cvd" or "resp"
+split <- "0" # "0" or "25"
 
 # Prior parameters
 a <- 1
