@@ -2,15 +2,24 @@
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
 # Check for updates on moretrees master branch
-# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel",)
+# devtools::install_github("emgthomas/moretrees_pkg", ref = "simplified")
 require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
+require(data.table)
 
 # Key parameters
-dataset <- "cvd" # "cvd" or "resp"
+dataset <- "resp" # "cvd" or "resp"
 split <- "25" # "0" or "25"
+mod <- 2
 nfolds <- 10
+set.seed(292345)
+seed <- sample(1:1E6, 2)
+if (dataset == "cvd") {
+  seed <- seed[1]
+} else {
+  seed <- seed[2]
+}
 
 # Prior parameters
 a <- c(1, 1)
@@ -62,32 +71,40 @@ sd_rmax <- sd(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), na.rm =
 dt[ , rmax_lag01_case := rmax_lag01_case / sd_rmax]
 dt[ , rmax_lag01_control := rmax_lag01_control / sd_rmax]
 
-# spline parameters
-require(splines)
-require(data.table)
-nknots <- 2
-q <- seq(0, 1, length.out = nknots + 2)
+if (mod == 1) {
+  W_cols_case <- NULL
+  W_cols_control <- NULL
+}
 
-# Get splines for temperature
-tmmx_knots <- quantile(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]), probs = q)
-tmmx_internal_knots <- tmmx_knots[2:(length(tmmx_knots) - 1)]
-tmmx_boundary_knots <- c(tmmx_knots[1], tmmx_knots[length(tmmx_knots)])
-dt[ , paste0("tmmx_spl_case", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
-dt[ , paste0("tmmx_spl_control", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+if (mod == 2) {
+  W_cols_case <- c("tmmx_lag01_case", "rmax_lag01_case")
+  W_cols_control <- c("tmmx_lag01_control", "rmax_lag01_control")
+}
 
-# Get splines for humidity
-rmax_knots <- quantile(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), probs = q)
-rmax_internal_knots <- rmax_knots[2:(length(rmax_knots) - 1)]
-rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
-dt[ , paste0("rmax_spl_case", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
-dt[ , paste0("rmax_spl_control", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
-
-# Remove unnecessary columns to save memory
-dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", "rmax_lag01_case", "rmax_lag01_control") := NULL]
-
-# Which columns indicated covariate splines
-W_cols_case <- c(paste0("tmmx_spl_case", 1:(nknots + 1)), paste0("rmax_spl_case", 1:(nknots + 1)))
-W_cols_control <- c(paste0("tmmx_spl_control", 1:(nknots + 1)), paste0("rmax_spl_control", 1:(nknots + 1)))
+if (mod == 3) {
+  # spline parameters
+  require(splines)
+  nknots <- 2
+  q <- seq(0, 1, length.out = nknots + 2)
+  
+  # Get splines for temperature
+  tmmx_knots <- quantile(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]), probs = q, na.rm = T)
+  tmmx_internal_knots <- tmmx_knots[2:(length(tmmx_knots) - 1)]
+  tmmx_boundary_knots <- c(tmmx_knots[1], tmmx_knots[length(tmmx_knots)])
+  dt[ , paste0("tmmx_spl_case", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+  dt[ , paste0("tmmx_spl_control", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+  
+  # Get splines for humidity
+  rmax_knots <- quantile(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), probs = q, na.rm = T)
+  rmax_internal_knots <- rmax_knots[2:(length(rmax_knots) - 1)]
+  rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
+  dt[ , paste0("rmax_spl_case", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
+  dt[ , paste0("rmax_spl_control", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
+  
+  # Which columns indicated covariate splines
+  W_cols_case <- c(paste0("tmmx_spl_case", 1:(nknots + 1)), paste0("rmax_spl_case", 1:(nknots + 1)))
+  W_cols_control <- c(paste0("tmmx_spl_control", 1:(nknots + 1)), paste0("rmax_spl_control", 1:(nknots + 1)))
+}
 
 # Keep only necessary variables
 dt <- dt[ , c(X_cols_case, X_cols_control,
@@ -97,8 +114,12 @@ dt <- dt[ , c(X_cols_case, X_cols_control,
 # Remove NA rows (moretrees doesn't do this automatically)
 dt <- na.omit(dt)
 
-# Get folds
-dt$folds <- sample(1:nfolds, size = nrow(dt), replace = T)
+# Get 
+set.seed(seed)
+folds_function <- function(nfolds, n) sample(rep(sample(1:nfolds), length.out = n))
+dt[ , folds := folds_function(nfolds, .N), by = ccs_added_zeros]
+# Check this worked
+# dcast(dt, folds ~ ccs_added_zeros)
 
 # Get tree
 require(magrittr)
@@ -140,44 +161,67 @@ names(dt)[names(dt) == "ccs_added_zeros"] <- "level4"
 setkeyv(dt, c("folds", paste0("level", 1:4)))
 
 # Load initial values
-load(paste0("./results/mod3_split", split, "_", dataset, ".RData"))
+load(paste0("./results/mod", mod, "_split", split, "_", dataset, ".RData"))
 vi_params_init <- moretrees_results$mod$vi_params
 hyperparams_init <- moretrees_results$mod$hyperparams
+hyperparams_init$ELBO <- NULL
 rm(moretrees_results)
 
 # Set up parallelization
-require(doParalllel)
+require(doParallel)
 registerDoParallel(cores = nfolds)
 
 # Out-of-sample prediction via 10-fold CV ------------------------------------------------------------------
 
 # Function for computing log-likelihood component for each outcome
-ll_fun <- function(v, beta, theta, X, W, outcomes, outcomes_unique){
-  out <- outcomes_unique[v]
-  sum(moretrees:::logexpit(beta[[v]] %*% X[outcomes == out, , drop = F] + 
-                          theta[[v]] %*% W[outcomes == out, , drop = F]))
+ll_fun <- function(v, beta, theta, Xdiff, Wdiff, outcomes, outcomes_unique){
+  out <- outcomes_unique[[v]]
+  as.numeric(moretrees:::logexpit(Xdiff[outcomes %in% out, , drop = F] %*% beta[v, ] + 
+                           Wdiff[outcomes %in% out, , drop = F] %*% theta[v, ]))
 }
 
-cv_out <- foreach(i = 1:nfolds, .combine = cbind) %doPar% {
+ll.cv <- as.data.frame(matrix(nrow = nfolds, ncol = 7))
+names(ll.cv) <- c("fold", "ll.moretrees", "ll.moretrees.ml", paste0("ll.ml", 1:4))
+
+#ll.cv <- foreach(i = 1:nfolds, .combine = cbind) %doPar% {
+for (i in 1:nfolds) {
   
-  # Grouped CLR estimates
+  cat("\n\nFold", i, "\n\n")
+  
+  
   ml_group <- list()
+  n.train <- sum(dt$folds != i)
+  ll.ml <- numeric(ncol(outcomes_levels))
   for (l in 1:max(levels)) {
     out <- as.list(unique(outcomes_levels[ , paste0("level", l)]))
-    ml_group[[l]] <- moretrees:::ml_by_group(X = dt[folds != i, X.cols.case, with = F] - dt[folds != i, X.cols.control, with = F],
-                                        W = dt[folds != i, W.cols.case, with = F] - dt[folds != i, W.cols.control, with = F],
-                                        y = rep(1, nrow(X.train)),
-                                        outcomes = dt[folds != i , paste0("level", l), with = FALSE],
+    # Grouped CLR estimates
+    ml_group[[l]] <- moretrees:::ml_by_group(X = dt[folds != i, X_cols_case, with = F] - dt[folds != i, X_cols_control, with = F],
+                                        W = dt[folds != i, W_cols_case, with = F] - dt[folds != i, W_cols_control, with = F],
+                                        y = rep(1, n.train),
+                                        outcomes = dt[folds != i , paste0("level", l), with = FALSE][[1]],
                                         outcome_groups = out,
-                                        return_theta = T)
+                                        return_theta = T,
+                                        return_ci = F,
+                                        family = "binomial")
+    # Get test set log likelihoods for CLR
+    ll.ml[l] <- mean(unlist(sapply(X = 1:length(out), 
+                                   FUN = ll_fun, 
+                                   beta = as.matrix(ml_group[[l]]$beta_ml[ , paste0("est", 1:length(X_cols_case)), drop = F]),
+                                   theta = as.matrix(ml_group[[l]]$theta_ml[ , paste0("est", 1:length(W_cols_case)), drop = F]),
+                                   Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
+                                   Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
+                                   outcomes = dt[folds == i, paste0("level", l), with = FALSE][[1]],
+                                   outcomes_unique = out)))
   }
   
   # Run moretreees on training data
-  mod <- moretrees::moretrees(Xcase = dt[folds != i, X.cols.case, with = F], 
-                              Xcontrol = dt[folds != i, X.cols.control, with = F], 
-                              Wcase = dt[folds != i, W.cols.case, with = F],
-                              Wcontrol = dt[folds != i, W.cols.control, with = F],
+  mod <- moretrees::moretrees(Xcase = as.matrix(dt[folds != i, X_cols_case, with = F]), 
+                              Xcontrol = as.matrix(dt[folds != i, X_cols_control, with = F]), 
+                              Wcase = as.matrix(dt[folds != i, W_cols_case, with = F]),
+                              Wcontrol = as.matrix(dt[folds != i, W_cols_control, with = F]),
                               outcomes = dt[folds !=i, level4],
+                              vi_params_init = vi_params_init,
+                              hyperparams_init = hyperparams_init,
                               hyper_fixed = hyper_fixed,
                               max_iter = max_iter,
                               update_hyper_freq = update_hyper_freq,
@@ -187,34 +231,37 @@ cv_out <- foreach(i = 1:nfolds, .combine = cbind) %doPar% {
                               nrestarts = 1,
                               print_freq = 1,  
                               get_ml = TRUE)
+  beta_est <- mod$beta_est
+  theta_est <- mod$theta_est
+  beta_ml <- mod$beta_ml
+  theta_ml <- mod$theta_ml
   
-  # Get test set log likelihoods
-  ll.moretrees <- mean(sapply(1:sum(V(tree)$leaf), 
-                              ll_fun, 
-                              beta = mod$beta_est,
-                              theta = mod$theta_est,
-                              X = dt[folds == i, X.cols.case, with = F] - dt[folds == i, X.cols.control, with = F],
-                              W = dt[folds == i, W.cols.case, with = F] - dt[folds == i, W.cols.control, with = F],
-                              outcomes = dt[folds == i, level4]))
-  ll.ml <- numeric(ncol(outcomes_levels))
-  for(l in 1:length(ll.ml)){
-    outcomes_unique <- unique(outcomes_levels[ , paste0("level", l)])
-    ll.ml[l] <- mean(sapply(1:length(outcomes_unique), 
-                            ll_fun, 
-                            beta = ml_group[[l]]$beta_ml[ , paste0("est", 1:length(X.cols.case))],
-                            theta = ml_group[[l]]$theta_ml[ , paste0("est", 1:length(W.cols.case))],
-                            X = dt[folds == i, X.cols.case, with = F] - dt[folds == i, X.cols.control, with = F],
-                            W = dt[folds == i, W.cols.case, with = F] - dt[folds == i, W.cols.control, with = F],
-                            outcomes = dt[folds == i, paste0("level", i), with = FALSE],
-                            outcomes_unique = outcomes_unique))
-  }
+  # Get test set log likelihood for moretrees
+  as.list(out <- unique(outcomes_levels$level4))
+  ll.moretrees <- mean(unlist(sapply(X = 1:length(out), 
+                                     FUN = ll_fun, 
+                                     beta = as.matrix(beta_est[ , paste0("est", 1:length(X_cols_case)), drop = F]),
+                                     theta = as.matrix(theta_est[ , paste0("est", 1:length(W_cols_case)), drop = F]),
+                                     Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
+                                     Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
+                                     outcomes = dt[folds == i, level4][[1]],
+                                     outcomes_unique = out)))
+  ll.moretrees.ml <- mean(unlist(sapply(X = 1:nrow(beta_ml), 
+                                     FUN = ll_fun, 
+                                     beta = as.matrix(beta_ml[ , paste0("est", 1:length(X_cols_case)), drop = F]),
+                                     theta = as.matrix(theta_ml[ , paste0("est", 1:length(W_cols_case)), drop = F]),
+                                     Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
+                                     Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
+                                     outcomes = dt[folds == i, level4][[1]],
+                                     outcomes_unique = beta_ml$outcomes)))
   
   # Result
-  ll.cv <- as.data.frame(matrix(c(i, ll.moretrees, ll.ml),nrow=1))
-  names(ll.cv) <- c("fold", "ll.moretrees", paste0("ll.ml", 1:length(ll.ml)))
-  return(ll.cv)
+  ll.cv[i, ] <- c(i, ll.moretrees, ll.moretrees.ml, ll.ml)
+  # ll.cv <- as.data.frame(matrix(c(i, ll.moretrees, ll.ml),nrow=1))
+  # names(ll.cv) <- c("fold", "ll.moretrees", paste0("ll.ml", 1:length(ll.ml)))
+  # return(ll.cv)
 }
 
 ############### Save results ###############
 
-save(cv_out, file = paste0("./results/cv_split", split, "_", dataset, ".RData"))
+save(ll.cv, file = paste0("./results/cv_mod", mod, "_split", split, "_", dataset, ".RData"))

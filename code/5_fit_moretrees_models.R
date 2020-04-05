@@ -2,7 +2,7 @@
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
 # Check for updates on moretrees master branch
-# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel",)
+# devtools::install_github("emgthomas/moretrees_pkg", ref = "simplified",)
 require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
