@@ -141,9 +141,9 @@ dataset <- c("cvd", "resp")
 root <- c("7", "8")
 a_rho <- as.matrix(rbind(c(1, 1), c(0.9, 0.5)))
 b_rho <- as.matrix(rbind(c(1, 1), c(3 , 2)))
-prior <- c("main", "sens")
+prior <- c("main", "sens", "sens2")
 for (i in 1:2) {
-  for (j in 1:2) {
+  for (j in 1:3) {
     ds <- dataset[i]
     load(file = paste0("./results/mod1_split0_", ds, ".Rdata"))
     
@@ -154,15 +154,23 @@ for (i in 1:2) {
     vids <- Reduce(union, vids)
     tr <- induced_subgraph(tr, vids)
     
+    # Get levels
+    levels <- rep(1, length(V(tr)))
+    if (j %in% c(1,2)) {
+      leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+      levels[names(igraph::V(tr)) %in% leaves] <- 2
+    }
+    
     # Create matrix plot
     rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
     pltfile3 <- paste0("./figures/prior_", ds, "_", prior[j],".pdf")
     pdf(file = pltfile3, width = 12, height = 9.5)
     print(equal_betas_plot(prob = NULL,
                            show.groups = F,
-                           a_rho = a_rho[j, ], b_rho = b_rho[j, ],
+                           a_rho = a_rho[2 - j %% 2, ], b_rho = b_rho[2 - j %% 2, ],
                            tr = tr,
-                           rownames.lab.offset = rownames.lab.offset))
+                           rownames.lab.offset = rownames.lab.offset,
+                           levels = levels))
     dev.off()
   }
 }
@@ -173,11 +181,11 @@ dataset <- c("cvd", "resp")
 root <- c("7", "8")
 a_rho <- as.matrix(rbind(c(1, 1), c(0.9, 0.5)))
 b_rho <- as.matrix(rbind(c(1, 1), c(3 , 2)))
-prior <- c("main", "sens")
+prior <- c("main", "sens", "sens2")
 require(doParallel)
 registerDoParallel(cores = detectCores())
 require(foreach)
-for (j in 1:2) {
+for (j in 1:3) {
   for (i in 1:2) {
     ds <- dataset[i]
     load(file = paste0("./results/mod1_split0_", ds, ".Rdata"))
@@ -191,7 +199,9 @@ for (j in 1:2) {
     
     # Get levels
     levels <- rep(1, length(V(tr)))
-    levels[V(tr)$leaf] <- 2
+    if (j %in% c(1,2)) {
+      levels[names(igraph::V(tr)) %in% leaves] <- 2
+    }
     
     # Get ancestor matrix
     A <- igraph::as_adjacency_matrix(tr, sparse = T)
@@ -202,8 +212,8 @@ for (j in 1:2) {
     
     # Run sims
     simsout <- foreach(i = 1:Nsims, .combine = rbind) %dopar% 
-      sim.prior.fun(levels, A_leaf, a_rho = a_rho[j, ],
-                    b_rho = b_rho[j, ])
+      sim.prior.fun(levels, A_leaf, a_rho = a_rho[2 - j %% 2, ],
+                    b_rho = b_rho[2 - j %% 2, ])
     # plot(x, dbeta(x, shape1 = 0.5, shape2 = 2), type = "l")
     
     # Make plot

@@ -19,10 +19,10 @@ for (i in 1:length(dataset)) { # datasets
    for (mod in 2:nmods) { # models
       
       # Read in results of moretrees model 
-      load(file = paste0("./results/mod", mod, "_split0_", ds, "_ozone.Rdata"))
+      load(file = paste0("./results/mod", mod, "_split0_", ds, "_sens.Rdata"))
       approx_ml[i, 1, mod - 1] <- moretrees_results$mod$hyperparams$ELBO
       mod0 <- moretrees_results
-      load(file = paste0("./results/mod", mod, "_split25_", ds, "_ozone.Rdata"))
+      load(file = paste0("./results/mod", mod, "_split25_", ds, "_sens.Rdata"))
       approx_ml[i, 2, mod - 1] <- moretrees_results$mod$hyperparams$ELBO
       mod25 <- moretrees_results
       
@@ -61,7 +61,7 @@ for (i in 1:length(dataset)) { # datasets
                            digits = 1, display = display)
       names(est_xtable) <- tabnames
       
-      tabfile <- paste0("./figures/mod", mod, "_", ds, "_table_ozone.tex")
+      tabfile <- paste0("./figures/mod", mod, "_", ds, "_table_sens.tex")
       write(print(est_xtable, floating = FALSE, include.rownames = FALSE,
                   sanitize.text.function = function(x) x),
             file = tabfile)
@@ -130,7 +130,7 @@ ml_plot <- ggplot(approx_ml2) +
                         labels = c("No break",
                                    expression("25"*mu*"g"*m^-3)),
                         solid = F)
-pdf(file = paste0("./figures/vb_bound_ozone.pdf"), width = 6, height = 4)
+pdf(file = paste0("./figures/vb_bound_sens.pdf"), width = 6, height = 4)
 ml_plot
 dev.off()
 
