@@ -16,7 +16,7 @@ approx_ml <- array(dim = c(length(dataset), length(splits), 2),
 
 for (i in 1:length(dataset)) { # datasets
    ds <- dataset[i]
-   for (mod in 2:nmods) { # models
+   for (mod in 1:nmods) { # models
       
       # Read in results of moretrees model 
       load(file = paste0("./results/mod", mod, "_split0_", ds, "_sens.Rdata"))
