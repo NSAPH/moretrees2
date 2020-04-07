@@ -177,7 +177,7 @@ registerDoParallel(cores = nfolds)
 ll_fun <- function(v, beta, theta, Xdiff, Wdiff, outcomes, outcomes_unique){
   out <- outcomes_unique[[v]]
   as.numeric(moretrees:::logexpit(Xdiff[outcomes %in% out, , drop = F] %*% beta[v, ] + 
-                           Wdiff[outcomes %in% out, , drop = F] %*% theta[v, ]))
+                                    Wdiff[outcomes %in% out, , drop = F] %*% theta[v, ]))
 }
 
 ll.cv <- as.data.frame(matrix(nrow = nfolds, ncol = 7))
@@ -196,13 +196,13 @@ for (i in 1:nfolds) {
     out <- as.list(unique(outcomes_levels[ , paste0("level", l)]))
     # Grouped CLR estimates
     ml_group[[l]] <- moretrees:::ml_by_group(X = dt[folds != i, X_cols_case, with = F] - dt[folds != i, X_cols_control, with = F],
-                                        W = dt[folds != i, W_cols_case, with = F] - dt[folds != i, W_cols_control, with = F],
-                                        y = rep(1, n.train),
-                                        outcomes = dt[folds != i , paste0("level", l), with = FALSE][[1]],
-                                        outcome_groups = out,
-                                        return_theta = T,
-                                        return_ci = F,
-                                        family = "binomial")
+                                             W = dt[folds != i, W_cols_case, with = F] - dt[folds != i, W_cols_control, with = F],
+                                             y = rep(1, n.train),
+                                             outcomes = dt[folds != i , paste0("level", l), with = FALSE][[1]],
+                                             outcome_groups = out,
+                                             return_theta = T,
+                                             return_ci = F,
+                                             family = "binomial")
     # Get test set log likelihoods for CLR
     ll.ml[l] <- mean(unlist(sapply(X = 1:length(out), 
                                    FUN = ll_fun, 
@@ -215,7 +215,7 @@ for (i in 1:nfolds) {
   }
   
   # Run moretreees on training data
-  mod <- moretrees::moretrees(Xcase = as.matrix(dt[folds != i, X_cols_case, with = F]), 
+  mod_mt <- moretrees::moretrees(Xcase = as.matrix(dt[folds != i, X_cols_case, with = F]), 
                               Xcontrol = as.matrix(dt[folds != i, X_cols_control, with = F]), 
                               Wcase = as.matrix(dt[folds != i, W_cols_case, with = F]),
                               Wcontrol = as.matrix(dt[folds != i, W_cols_control, with = F]),
@@ -231,35 +231,33 @@ for (i in 1:nfolds) {
                               nrestarts = 1,
                               print_freq = 1,  
                               get_ml = TRUE)
-  beta_est <- mod$beta_est
-  theta_est <- mod$theta_est
-  beta_ml <- mod$beta_ml
-  theta_ml <- mod$theta_ml
+  beta_est <- mod_mt$beta_est
+  theta_est <- mod_mt$theta_est
+  beta_ml <- mod_mt$beta_ml
+  theta_ml <- mod_mt$theta_ml
+  rm(mod_mt)
   
   # Get test set log likelihood for moretrees
-  as.list(out <- unique(outcomes_levels$level4))
+  out <- as.list(unique(outcomes_levels$level4))
   ll.moretrees <- mean(unlist(sapply(X = 1:length(out), 
                                      FUN = ll_fun, 
                                      beta = as.matrix(beta_est[ , paste0("est", 1:length(X_cols_case)), drop = F]),
                                      theta = as.matrix(theta_est[ , paste0("est", 1:length(W_cols_case)), drop = F]),
                                      Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
                                      Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
-                                     outcomes = dt[folds == i, level4][[1]],
+                                     outcomes = dt[folds == i, level4],
                                      outcomes_unique = out)))
   ll.moretrees.ml <- mean(unlist(sapply(X = 1:nrow(beta_ml), 
-                                     FUN = ll_fun, 
-                                     beta = as.matrix(beta_ml[ , paste0("est", 1:length(X_cols_case)), drop = F]),
-                                     theta = as.matrix(theta_ml[ , paste0("est", 1:length(W_cols_case)), drop = F]),
-                                     Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
-                                     Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
-                                     outcomes = dt[folds == i, level4][[1]],
-                                     outcomes_unique = beta_ml$outcomes)))
+                                        FUN = ll_fun, 
+                                        beta = as.matrix(beta_ml[ , paste0("est", 1:length(X_cols_case)), drop = F]),
+                                        theta = as.matrix(theta_ml[ , paste0("est", 1:length(W_cols_case)), drop = F]),
+                                        Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
+                                        Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
+                                        outcomes = dt[folds == i, level4],
+                                        outcomes_unique = beta_ml$outcomes)))
   
   # Result
   ll.cv[i, ] <- c(i, ll.moretrees, ll.moretrees.ml, ll.ml)
-  # ll.cv <- as.data.frame(matrix(c(i, ll.moretrees, ll.ml),nrow=1))
-  # names(ll.cv) <- c("fold", "ll.moretrees", paste0("ll.ml", 1:length(ll.ml)))
-  # return(ll.cv)
 }
 
 ############### Save results ###############
