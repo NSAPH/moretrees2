@@ -116,30 +116,54 @@ for (i in 1:length(dataset)) { # datasets
    }
 }
 
-# Plot Bayes' factors
+# Plot cross-validation results
 require(reshape2)
-approx_ml2 <- melt(approx_ml)
-approx_ml2$split <- factor(approx_ml2$split)
-approx_ml2$Model <- factor(approx_ml2$Model)
-ml_plot <- ggplot(approx_ml2) + 
-   geom_point(aes(x = Model, y = value, shape = split), size = 2) +
-   facet_wrap(dataset ~ ., nrow = 1, scales = "free_y") +
-   theme_minimal() + xlab("Model") + 
-   ylab(expression("Lower Bound for "*pi(Y))) +
-   scale_shape_discrete(name = expression(PM[2.5]*" break"),
-                        labels = c("No break",
-                                   expression("25"*mu*"g"*m^-3)),
-                        solid = F)
-pdf(file = paste0("./figures/vb_bound.pdf"), width = 6, height = 4)
-ml_plot
-dev.off()
+nfolds <- 10
+colnms <- c("Dataset",
+              "Model",
+              "fold",
+              "MOReTreeS",
+              "CLR\n(MOReTrees)",
+              "CLR\n(Level 1)",
+              "CLR\n(Level 2)",
+              "CLR\n(Level 3)",
+              "CLR\n(Level 4)")
+datasetnms <- c("CVD Dataset", "RD Dataset")
+cv.res <- as.data.frame(matrix(nrow = 0, ncol = length(colnms)))
+names(cv.res) <- colnms
+for(i in 1:length(dataset)){
+   for (j in 1:length(splits)) {
+      load(paste0("./results/cv_mod3_split", splits[j], "_", dataset[i], ".RData"))
+      ll.cv <- cbind(rep(datasetnms[i], nfolds),
+                     rep(paste0("Model ", j), nfolds),
+                     ll.cv)
+      names(ll.cv) <- colnms
+      cv.res <- rbind(cv.res, ll.cv)
+   }
+}
+cv.df <- reshape(cv.res, direction = "long",
+              varying = list(colnms[4:9]),
+              times = colnms[4:9])
+names(cv.df)[4:5] <- c("Method", "ll")
+cv.df$Method <- factor(cv.df$Method, levels = colnms[4:9])
+cv.df$Model <- factor(cv.df$Model, levels = c("Model 1", "Model 2"))
+cv.df$id <- NULL
 
 # Best model
-approx_ml_cvd <- approx_ml2[approx_ml2$dataset == "Cardiovascular Data", ]
-approx_ml_cvd[which.max(approx_ml_cvd$value), ]
+tapply(cv.res$Dataset)
+apply(cv.res[,-c(1,3)],1,which.max)
+# How often does MOReTreeS individual beat MOReTrees collapsed?
+sum(cv.res[,2] <= cv.res[,3])
 
-approx_ml_resp <- approx_ml2[approx_ml2$dataset == "Respiratory Data", ]
-approx_ml_resp[which.max(approx_ml_resp$value), ]
+# Plot CV results
+cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
+   geom_boxplot() +
+   facet_wrap(. ~ Dataset, ncol = 1, scales = "free_y") +
+   theme_bw(base_size = 18) + 
+   scale_fill_grey(start = 0.5, end = 0.8) +
+   xlab("Method") +
+   ylab("Mean log likelihood in test set")
 
-
-
+pdf("./results/cv_plot.pdf",width = 12, height = 10)
+cv.plot
+dev.off()
