@@ -149,21 +149,29 @@ cv.df$Method <- factor(cv.df$Method, levels = colnms[4:9])
 cv.df$Model <- factor(cv.df$Model, levels = c("Model 1", "Model 2"))
 cv.df$id <- NULL
 
-# Best model
-tapply(cv.res$Dataset)
-apply(cv.res[,-c(1,3)],1,which.max)
-# How often does MOReTreeS individual beat MOReTrees collapsed?
-sum(cv.res[,2] <= cv.res[,3])
+# Best model CVD
+cv.cvd <- subset(cv.res, Dataset == "CVD Dataset")
+cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:9],
+                "mod2" = cv.cvd[11:20, 4:9])
+cv.cvd.min <- apply(cv.cvd, 1,
+                    function(df) names(df)[which.max(df)])
+
+# Best model RD
+cv.resp <- subset(cv.res, Dataset == "RD Dataset")
+cv.resp <- cbind("mod1" = cv.resp[1:10, 4:9],
+                "mod2" = cv.resp[11:20, 4:9])
+cv.resp.min <- apply(cv.resp, 1,
+                    function(df) names(df)[which.max(df)])
 
 # Plot CV results
 cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
    geom_boxplot() +
    facet_wrap(. ~ Dataset, ncol = 1, scales = "free_y") +
-   theme_bw(base_size = 18) + 
+   theme_bw(base_size = 22) + 
    scale_fill_grey(start = 0.5, end = 0.8) +
    xlab("Method") +
    ylab("Mean log likelihood in test set")
 
-pdf("./results/cv_plot.pdf",width = 12, height = 10)
+pdf("./results/cv_plot.pdf",width = 12, height = 8)
 cv.plot
 dev.off()
