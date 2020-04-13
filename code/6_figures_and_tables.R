@@ -97,9 +97,44 @@ for (i in 1:length(dataset)) { # datasets
                   sanitize.text.function = function(x) x),
             file = tabfile)
       
+      # Create tree plots
+      if (mod == 3) {
+         leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+         groups.df25 <- data.frame(leaves = leaves, 
+                                   Group25 = as.factor(mod25$beta_est$group))
+         mod0$tr <- tr
+         class(mod0) <- "moretrees_result"
+         cols_g <- RColorBrewer::brewer.pal(max(mod0$beta_moretrees$group), "Set3")
+         p <- plot(mod0, group.text.size = 5,
+                   group.text.offset = 0.5,
+                   legend.text.size = 5) %<+% groups.df25 + 
+            geom_tippoint(ggplot2::aes(fill = Group25),
+                          shape = 21, size = 5,
+                          color = "white",
+                          stroke = 0.0001,
+                          position = position_nudge(x = -1.1)) +
+            geom_tiplab(ggplot2::aes(label = Group25),
+                        size = 5,
+                        offset = -1.6,
+                        vjust = 0.5,
+                        hjust = 0.5) +
+            labs(colour = "Model 1 Groups:", fill = "Model 2 Groups:") + 
+            theme(legend.position="bottom",
+                  legend.text = element_text(size = 15),
+                  legend.title = element_text(size = 15),
+                  legend.margin = margin(-8, 20, 0, 20),
+                  legend.box.margin = margin(0, 0, 0, 0)) +
+            guides(colour = guide_legend(order = 1, nrow = 1), 
+                   fill = guide_legend(order = 2, nrow = 1))
+         if (i == 1) p <- p + scale_fill_manual(values = cols_g[c(2, 1, 3, 5, 6)])
+         pltfile <- paste0("./figures/mod", mod, "_", ds, "_tree.pdf")
+         pdf(file = pltfile, width = 12, height = 2.1)
+         p
+         dev.off()
+      }
+      
       # Create matrix plots
       rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
-      pltfile2 <- paste0("./figures/mod", mod, "_split0_", ds, "_matrix.pdf")
       pdf(file = pltfile2, width = 12, height = 9.5)
       print(equal_betas_plot(prob = mod0$mod$vi_params$prob,
                              groups = mod0$beta_est$group,
@@ -120,20 +155,20 @@ for (i in 1:length(dataset)) { # datasets
 require(reshape2)
 nfolds <- 10
 colnms <- c("Dataset",
-              "Model",
-              "fold",
-              "MOReTreeS",
-              "CLR\n(MOReTrees)",
-              "CLR\n(Level 1)",
-              "CLR\n(Level 2)",
-              "CLR\n(Level 3)",
-              "CLR\n(Level 4)")
+            "Model",
+            "fold",
+            "MOReTreeS",
+            "CLR\n(MOReTrees)",
+            "CLR\n(Level 1)",
+            "CLR\n(Level 2)",
+            "CLR\n(Level 3)",
+            "CLR\n(Level 4)")
 datasetnms <- c("CVD Dataset", "RD Dataset")
 cv.res <- as.data.frame(matrix(nrow = 0, ncol = length(colnms)))
 names(cv.res) <- colnms
 for(i in 1:length(dataset)){
    for (j in 1:length(splits)) {
-      load(paste0("./results/cv_mod3_split", splits[j], "_", dataset[i], ".RData"))
+      load(paste0("./figures/cv_mod3_split", splits[j], "_", dataset[i], ".RData"))
       ll.cv <- cbind(rep(datasetnms[i], nfolds),
                      rep(paste0("Model ", j), nfolds),
                      ll.cv)
@@ -142,8 +177,8 @@ for(i in 1:length(dataset)){
    }
 }
 cv.df <- reshape(cv.res, direction = "long",
-              varying = list(colnms[4:9]),
-              times = colnms[4:9])
+                 varying = list(colnms[4:9]),
+                 times = colnms[4:9])
 names(cv.df)[4:5] <- c("Method", "ll")
 cv.df$Method <- factor(cv.df$Method, levels = colnms[4:9])
 cv.df$Model <- factor(cv.df$Model, levels = c("Model 1", "Model 2"))
@@ -159,9 +194,9 @@ cv.cvd.min <- apply(cv.cvd, 1,
 # Best model RD
 cv.resp <- subset(cv.res, Dataset == "RD Dataset")
 cv.resp <- cbind("mod1" = cv.resp[1:10, 4:9],
-                "mod2" = cv.resp[11:20, 4:9])
+                 "mod2" = cv.resp[11:20, 4:9])
 cv.resp.min <- apply(cv.resp, 1,
-                    function(df) names(df)[which.max(df)])
+                     function(df) names(df)[which.max(df)])
 
 # Plot CV results
 cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
