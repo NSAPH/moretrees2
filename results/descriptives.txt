@@ -4,6 +4,11 @@ Total first admissions for CVD =  16154061
 
 Complete cases for CVD =  16007293 ( 99.09145 %)
 
+Number of cases per respiratory outcome:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    188   25196   76392  280830  280445 2106507 
+
+
 Case days with PM2.5 > 25:
 [1] 0.03677105
 
@@ -12,14 +17,16 @@ Control days with PM2.5 > 25:
 [1] 0.03669003
 
 
-Case days with PM2.5 > 35:
-
-
 Total respiratory admissions in study period =  16073174
 
 Total first admissions for respiratory disease =  8796772
 
 Complete cases for respiratory disease =  8690837 ( 98.79575 %)
+
+Number of cases per respiratory outcome:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+     68   23222   66888  271589  182748 3387998 
+
 
 Case days with PM2.5 > 25:
 [1] 0.03376038
@@ -27,14 +34,6 @@ Case days with PM2.5 > 25:
 
 Control days with PM2.5 > 25:
 [1] 0.03343913
-
-
-Case days with PM2.5 > 35:
-[1] 0.007536788
-
-
-Control days with PM2.5 > 35:
-[1] 0.007423796
 
 
 Table 1 data------------------------------------------------------

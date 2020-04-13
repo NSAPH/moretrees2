@@ -54,12 +54,16 @@ cat("\n\nTotal first admissions for CVD = ", n_cvd)
 dt_cvd <- na.omit(dt_cvd, cols = cols.omit)
 cat("\n\nComplete cases for CVD = ", nrow(dt_cvd), "(", 100 * nrow(dt_cvd) / n_cvd, "%)")
 
+# Respiratory: number of cases per outcome
+n_out <- as.integer(table(dt_cvd$ccs_added_zeros))
+cat("\n\nNumber of cases per respiratory outcome:\n")
+summary(n_out)
+
 # CVD: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")
 mean(dt_cvd$pm25_lag01_case > 25)
 cat("\n\nControl days with PM2.5 > 25:\n")
 mean(dt_cvd$pm25_lag01_control > 25)
-cat("\n\nCase days with PM2.5 > 35:\n")
 
 # Respiratory disease ------------------------------------------
 cat("\n\nTotal respiratory admissions in study period = ", nrow(dt_resp))
@@ -74,15 +78,16 @@ cat("\n\nTotal first admissions for respiratory disease = ", n_resp)
 dt_resp <- na.omit(dt_resp, cols = cols.omit)
 cat("\n\nComplete cases for respiratory disease = ", nrow(dt_resp), "(", 100 * nrow(dt_resp) / n_resp, "%)")
 
+# Respiratory: number of cases per outcome
+n_out <- as.integer(table(dt_resp$ccs_added_zeros))
+cat("\n\nNumber of cases per respiratory outcome:\n")
+summary(n_out)
+
 # Respiratory: days above and below threshold
 cat("\n\nCase days with PM2.5 > 25:\n")
 mean(dt_resp$pm25_lag01_case > 25)
 cat("\n\nControl days with PM2.5 > 25:\n")
 mean(dt_resp$pm25_lag01_control > 25)
-cat("\n\nCase days with PM2.5 > 35:\n")
-mean(dt_resp$pm25_lag01_case > 35)
-cat("\n\nControl days with PM2.5 > 35:\n")
-mean(dt_resp$pm25_lag01_control > 35)
 
 # Table 1 data
 
@@ -210,7 +215,6 @@ sink()
 
 # Get labels for CVD
 lvls_cvd <- get_labels('7')
-plot_depth <- 3
 
 # # fake data for testing
 # n <- 1000
@@ -225,7 +229,7 @@ dt_cvd <- merge(dt_cvd, lvls_cvd,
 dt_cvd <- dt_cvd[order(match(ccs_added_zeros, lvls_cvd$lvl4_merge))]
 
 # Get plot data
-dt_cvd_plot <- dt_plot_fun(dt_cvd, plot_depth = plot_depth)
+dt_cvd_plot <- dt_plot_fun(dt_cvd, plot_depth = 3)
 
 # Make plot
 xlab <- expression(mu*"g"*m^-3)
@@ -235,7 +239,20 @@ pdf(file = "./figures/cvd_nested_plot.pdf", height = 8, width = 10)
 nested_plots(dt_cvd_plot, xlab = xlab, lab.widths = lab.widths,
              lab.txt.width = lab.txt.width, axis.height = 1.5,
              lab.txt.size = 4, digits = 2, axis.txt.size = 10,
-             plot_depth = plot_depth)
+             plot_depth = 3)
+dev.off()
+
+# Get plot data
+dt_cvd_plot2 <- dt_plot_fun(dt_cvd, plot_depth = 4)
+
+# Make plot
+lab.widths <- c(0.9, 0.9, 0.9, 0.4)
+lab.txt.width <- c(20, 20, 25, 15)
+pdf(file = "./figures/cvd_nested_plot2.pdf", height = 15, width = 15)
+nested_plots(dt_cvd_plot2, xlab = xlab, lab.widths = lab.widths,
+             lab.txt.width = lab.txt.width, axis.height = 2,
+             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             plot_depth = 4)
 dev.off()
 
 # Get labels for RD
@@ -254,7 +271,7 @@ dt_resp <- merge(dt_resp, lvls_resp,
 dt_resp <- dt_resp[order(match(ccs_added_zeros, lvls_resp$lvl4_merge))]
 
 # Get plot data
-dt_resp_plot <- dt_plot_fun(dt_resp, plot_depth = plot_depth)
+dt_resp_plot <- dt_plot_fun(dt_resp, plot_depth = 3)
 
 # Plot difference in PM25 between case and control by disease ----------------------------------
 xlab <- expression(mu*"g"*m^-3)
@@ -264,8 +281,20 @@ pdf(file = "./figures/resp_nested_plot.pdf", height = 8, width = 10)
 nested_plots(dt_resp_plot, xlab = xlab, lab.widths = lab.widths,
              lab.txt.width = lab.txt.width, axis.height = 1.35,
              lab.txt.size = 4, digits = 2, axis.txt.size = 10,
-             plot_depth = plot_depth)
+             plot_depth = 3)
 dev.off()
 
+# Get plot data
+dt_resp_plot2 <- dt_plot_fun(dt_resp, plot_depth = 4)
+
+# Make plot
+lab.widths <- c(0.9, 0.9, 0.9, 0.4)
+lab.txt.width <- c(20, 20, 25, 15)
+pdf(file = "./figures/resp_nested_plot2.pdf", height = 15, width = 15)
+nested_plots(dt_resp_plot2, xlab = xlab, lab.widths = lab.widths,
+             lab.txt.width = lab.txt.width, axis.height = 1.35,
+             lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             plot_depth = 4)
+dev.off()
 
 
