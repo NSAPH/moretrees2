@@ -14,21 +14,18 @@ cols.omit <- c("ccs_added_zeros", "pm25_lag01_case", "pm25_lag01_control",
                "rmax_lag01_case", "rmax_lag01_control")
 cols.other <- c("id", "adate", "ssa_state_cd",
           "race_gp", "sex_gp", "age_gp", "dual",
-          "ozone_lag01_case", "ozone_lag01_control")
+          "ozone_lag01_case", "ozone_lag01_control", "zip")
 cols <- c(cols.other, cols.omit)
 
 # # Select states
-# states_list <- c(7, 20, 22, 30, 41,
-#                  47, 31, 33, 39)
-# # states_list <- c("CT", "ME", "MA", "NH", "RI", 
-# #                 "VT", "NJ", "NY", "PA")
+excluded_states <- c(2, 12, 40, 48, 53:63, 97:99)
 
 # Load respiratory data
 dt_resp <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                     as.data.table = T, 
                     columns = cols)
-# # Keep only north east region
-# dt_resp <- dt_resp[ssa_state_cd %in% states_list]
+# Exclude states outside contiguous US
+dt_resp <- dt_resp[!(ssa_state_cd %in% excluded_states)]
 
 # Load CVD data
 dt_cvd <- read_fst("./data/merged_admissions_enviro/admissions_enviro_cvd.fst",
@@ -246,11 +243,12 @@ dev.off()
 dt_cvd_plot2 <- dt_plot_fun(dt_cvd, plot_depth = 4)
 
 # Make plot
-lab.widths <- c(0.9, 0.9, 0.9, 0.4)
-lab.txt.width <- c(20, 20, 25, 15)
+lab.widths <- c(0.75,0.9, 0.8, 0.82)
+lab.txt.width <- c(20, 25, 25, 15)
 pdf(file = "./figures/cvd_nested_plot2.pdf", height = 15, width = 15)
 nested_plots(dt_cvd_plot2, xlab = xlab, lab.widths = lab.widths,
-             lab.txt.width = lab.txt.width, axis.height = 2,
+             lab.txt.width = lab.txt.width, axis.height = 1.65,
+             cil_min = -0.015, ciu_max = 0.025,
              lab.txt.size = 4, digits = 2, axis.txt.size = 10,
              plot_depth = 4)
 dev.off()
@@ -288,12 +286,13 @@ dev.off()
 dt_resp_plot2 <- dt_plot_fun(dt_resp, plot_depth = 4)
 
 # Make plot
-lab.widths <- c(0.9, 0.9, 0.9, 0.4)
-lab.txt.width <- c(20, 20, 25, 15)
+lab.widths <- c(0.9, 2.5, 0.9, 0.9)
+lab.txt.width <- c(20, 60, 25, 25)
 pdf(file = "./figures/resp_nested_plot2.pdf", height = 15, width = 15)
 nested_plots(dt_resp_plot2, xlab = xlab, lab.widths = lab.widths,
-             lab.txt.width = lab.txt.width, axis.height = 1.35,
+             lab.txt.width = lab.txt.width, axis.height = 1,
              lab.txt.size = 4, digits = 2, axis.txt.size = 10,
+             cil_min = -0.015, ciu_max = 0.025,
              plot_depth = 4)
 dev.off()
 

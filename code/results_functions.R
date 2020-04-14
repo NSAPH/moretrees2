@@ -191,11 +191,8 @@ dt_plot_fun <- function(dt, plot_depth = 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), ": ", 
                                           str_remove(get(paste0("label", i)), "\\s\\(.*\\)"), " (n = ", get(paste0("n", i)), ")")]
     }
-    if (i == 3) {
+    if (i >= 3) {
       dt[ , paste0("pltlab", i) := paste0(get(paste0("ccs_lvl", i)), " (n = ", get(paste0("n", i)), ")")]
-    }
-    if (i == 4) {
-      dt[ , paste0("pltlab", i) := get(paste0("ccs_lvl", i))]
     }
   }
   dt_plot <- unique(dt[ , paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), rep(1:plot_depth, each = 5)), with = FALSE])
@@ -211,7 +208,9 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          lab.txt.width = rep(10, plot_depth),
                          axis.height = 1.5,
                          axis.txt.size = 2,
-                         xlab = "PM2.5") {
+                         xlab = "PM2.5",
+                         cil_min = -0.1,
+                         ciu_max = 0.1) {
   # Remove unnecessary columns
   dt_plot <- dt_plot[ , 
                       paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl", "n"), 
@@ -220,8 +219,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
   # Get some plotting parameters
   dt_plot[ , lab_col_num := as.integer(factor(cil_lvl2, levels = unique(cil_lvl2)))]
   dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey85", "grey95")]
-  lims <- c(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]),
-            max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]))
+  lims <- c(max(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE]), cil_min),
+            min(max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE]), ciu_max))
   x.ticks <- round(max(abs(lims)) * 3 / 4, digits = digits)
   x.grid <- x.ticks * c(-3/2, -1, -1/2, 1/2, 1, 3/2)
   layout <- integer()
@@ -240,10 +239,9 @@ nested_plots <- function(dt_plot, plot_depth = 3,
             panel.background = element_blank(),
             plot.margin = margin(t = 0, r = 0, b = 0, l = 0, "cm")) +
       xlab(xlab) +
-      scale_x_continuous(limits = c(lims[1], 
-                                    lims[2]),
-                         breaks = c(-x.ticks, 0, x.ticks))
-    
+      scale_x_continuous(limits = lims,
+                         breaks = c(-x.ticks, 0, x.ticks)) +
+      coord_cartesian(expand = FALSE)
   })
   # Make plots
   plot.count <- 0
@@ -298,6 +296,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         x <- paste0("est_lvl", i)
         dat <- as.data.frame(dt_plot[get(lab) == disease])
         dat <- dat[ , c(x, xmin, xmax)]
+        dat[, xmin] <- max(dat[, xmin], lims[1])
+        dat[, xmax] <- min(dat[, xmax], lims[2])
         dat <- unique(dat)
         dat$disease <- disease
         grob <- ggplot(dat) + 
@@ -314,14 +314,15 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                      lwd = 0.2, lty = 2) +
           geom_vline(xintercept = x.grid[6], color = "grey70",
                      lwd = 0.2, lty = 2) +
-          geom_point(aes(x = get(x), y = y.height)) +
           geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
                              y = y.height), height = errorbar.height) +
+          geom_point(aes(x = get(x), y = y.height)) +
           theme_void() +
           theme(panel.border = 
                   element_rect(colour = "black", fill = NA, size = 0.3)) +
           scale_x_continuous(limits = lims) + 
-          scale_y_continuous(limits = c(y.min, y.max))
+          scale_y_continuous(limits = c(y.min, y.max)) +
+          coord_cartesian(expand = FALSE)
         grob
       })
     }
