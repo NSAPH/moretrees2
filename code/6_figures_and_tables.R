@@ -168,7 +168,7 @@ cv.res <- as.data.frame(matrix(nrow = 0, ncol = length(colnms)))
 names(cv.res) <- colnms
 for(i in 1:length(dataset)){
    for (j in 1:length(splits)) {
-      load(paste0("./figures/cv_mod3_split", splits[j], "_", dataset[i], ".RData"))
+      load(paste0("./results/cv_mod3_split", splits[j], "_", dataset[i], ".RData"))
       ll.cv <- cbind(rep(datasetnms[i], nfolds),
                      rep(paste0("Model ", j), nfolds),
                      ll.cv)
@@ -176,9 +176,10 @@ for(i in 1:length(dataset)){
       cv.res <- rbind(cv.res, ll.cv)
    }
 }
+cv.res$`CLR\n(MOReTrees)` <- NULL
 cv.df <- reshape(cv.res, direction = "long",
-                 varying = list(colnms[4:9]),
-                 times = colnms[4:9])
+                 varying = list(colnms[c(4,6:9)]),
+                 times = colnms[c(4,6:9)])
 names(cv.df)[4:5] <- c("Method", "ll")
 cv.df$Method <- factor(cv.df$Method, levels = colnms[4:9])
 cv.df$Model <- factor(cv.df$Model, levels = c("Model 1", "Model 2"))
@@ -186,27 +187,27 @@ cv.df$id <- NULL
 
 # Best model CVD
 cv.cvd <- subset(cv.res, Dataset == "CVD Dataset")
-cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:9],
-                "mod2" = cv.cvd[11:20, 4:9])
+cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:8],
+                "mod2" = cv.cvd[11:20, 4:8])
 cv.cvd.min <- apply(cv.cvd, 1,
                     function(df) names(df)[which.max(df)])
 
 # Best model RD
 cv.resp <- subset(cv.res, Dataset == "RD Dataset")
-cv.resp <- cbind("mod1" = cv.resp[1:10, 4:9],
-                 "mod2" = cv.resp[11:20, 4:9])
+cv.resp <- cbind("mod1" = cv.resp[1:10, 4:8],
+                 "mod2" = cv.resp[11:20, 4:8])
 cv.resp.min <- apply(cv.resp, 1,
                      function(df) names(df)[which.max(df)])
 
 # Plot CV results
 cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
    geom_boxplot() +
-   facet_wrap(. ~ Dataset, ncol = 1, scales = "free_y") +
+   facet_wrap(. ~ Dataset, ncol = 2, scales = "free_y") +
    theme_bw(base_size = 22) + 
    scale_fill_grey(start = 0.5, end = 0.8) +
    xlab("Method") +
-   ylab("Mean log likelihood in test set")
+   ylab("Mean log likelihood\nin test set")
 
-pdf("./results/cv_plot.pdf",width = 12, height = 8)
+pdf("./figures/cv_plot.pdf",width = 18, height = 4)
 cv.plot
 dev.off()
