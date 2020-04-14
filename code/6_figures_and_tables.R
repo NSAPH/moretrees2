@@ -131,6 +131,34 @@ for (i in 1:length(dataset)) { # datasets
          pdf(file = pltfile, width = 12, height = 2.1)
          p
          dev.off()
+         
+         # create nested plots
+         pltdat <- get_moretrees_indiv(mod0, nsim = 100000)
+         V(tr)$levels <- as.numeric(igraph::distances(tr, v = root[i],
+                                                           to = V(tr), mode = "out") + 1)
+         xlab <- "Excess Rate (%)"
+         if (i == 1) {
+            lab.widths <- c(0.4,0.4, 0.4, 0.4)
+            lab.txt.width <- c(20, 25, 25, 15)
+            pdf(file = "./figures/cvd_nested_plot_results.pdf", height = 15, width = 12)
+            beta_indiv_plot_fun(pltdat, tr, xlab = xlab, lab.widths = lab.widths,
+                                lab.txt.width = lab.txt.width, axis.height = 1.5,
+                                cil_min = -5, ciu_max = 5,
+                                lab.txt.size = 4, digits = 0, axis.txt.size = 10,
+                                plot_depth = 4, wrap_labs = FALSE)
+            dev.off()
+         }
+         if (i == 2) {
+            lab.widths <- c(0.2, 0.2, 0.4, 0.4)
+            lab.txt.width <- c(20, 25, 25, 15)
+            pdf(file = "./figures/resp_nested_plot_results.pdf", height = 10, width = 12)
+            beta_indiv_plot_fun(pltdat, tr, xlab = xlab, lab.widths = lab.widths,
+                                lab.txt.width = lab.txt.width, axis.height = 1.2,
+                                cil_min = -12, ciu_max = 5,
+                                lab.txt.size = 4, digits = 0, axis.txt.size = 10,
+                                plot_depth = 4, wrap_labs = FALSE)
+            dev.off()
+         }
       }
       
       # Create matrix plots
