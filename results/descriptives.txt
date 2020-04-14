@@ -17,23 +17,23 @@ Control days with PM2.5 > 25:
 [1] 0.03669003
 
 
-Total respiratory admissions in study period =  16073174
+Total respiratory admissions in study period =  16035772
 
-Total first admissions for respiratory disease =  8796772
+Total first admissions for respiratory disease =  8776453
 
-Complete cases for respiratory disease =  8690837 ( 98.79575 %)
+Complete cases for respiratory disease =  8675301 ( 98.84746 %)
 
 Number of cases per respiratory outcome:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-     68   23222   66888  271589  182748 3387998 
+     68   23186   66745  271103  182505 3381429 
 
 
 Case days with PM2.5 > 25:
-[1] 0.03376038
+[1] 0.03381531
 
 
 Control days with PM2.5 > 25:
-[1] 0.03343913
+[1] 0.03349025
 
 
 Table 1 data------------------------------------------------------
@@ -122,74 +122,74 @@ Respiratory------------------------------------------------------
 
 PM2.5 summary for cases:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.01824   6.62659   9.60394  10.95624  13.71445 165.43865 
+  0.01824   6.63903   9.61417  10.96781  13.72328 165.43865 
 
 
 PM2.5 SD for cases:
-[1] 6.389713
+[1] 6.387879
 
 
 PM2.5 summary for controls:
      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-  0.00979   6.61008   9.57791  10.92676  13.67186 164.08389 
+  0.00979   6.62256   9.58790  10.93815  13.68082 164.08389 
 
 
 PM2.5 SD for controls:
-[1] 6.378001
+[1] 6.376058
 
 
 Temperature summary for cases:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
- -25.42   10.25   19.33   18.22   26.88   48.81 
+ -25.42   10.26   19.34   18.23   26.89   48.81 
 
 
 Temperature SD for cases:
-[1] 10.61827
+[1] 10.61517
 
 
 Temperature summary for controls:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
- -24.67   10.14   19.28   18.15   26.87   50.14 
+ -24.67   10.16   19.29   18.16   26.87   50.14 
 
 
 Temperature SD for controls:
-[1] 10.68445
+[1] 10.68168
 
 
 Humidity summary for cases:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  4.818  79.145  88.702  85.703  96.052 100.000 
+  4.818  79.160  88.709  85.713  96.054 100.000 
 
 
 Humidity SD for cases:
-[1] 13.37813
+[1] 13.37073
 
 
 Humidity summary for controls:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  4.993  79.058  88.646  85.645  96.021 100.000 
+  4.993  79.072  88.653  85.655  96.024 100.000 
 
 
 Humidity SD for controls:
-[1] 13.40205
+[1] 13.39502
 
 
 Ozone summary for cases:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-   0.00   28.93   36.55   37.73   45.54  177.71 
+   0.00   28.92   36.54   37.72   45.52  177.71 
 
 
 Ozone SD for cases:
-[1] 12.4822
+[1] 12.48471
 
 
 Ozone summary for controls:
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-   0.00   28.92   36.52   37.71   45.50  177.84 
+   0.00   28.91   36.51   37.70   45.48  177.84 
 
 
 Ozone SD for controls:
-[1] 12.45985
+[1] 12.46214
 
 
 Table 2 data------------------------------------------------------
@@ -230,25 +230,25 @@ Respiratory disease:
 
 Sex:
  dt_resp$sex_gp       n   percent
-           Male 3829043 0.4405839
-         Female 4861794 0.5594161
+           Male 3821819 0.4405402
+         Female 4853482 0.5594598
 
 
 Age:
  dt_resp$age_gp       n   percent
-      74<Age<85 3323929 0.3824636
-      64<Age<75 2818540 0.3243117
-         Age>84 2548368 0.2932247
+      74<Age<85 3317773 0.3824389
+      64<Age<75 2812889 0.3242411
+         Age>84 2544639 0.2933200
 
 
 Race:
  dt_resp$race_gp       n    percent
-           White 7539718 0.86754797
-           Other  393706 0.04530128
-           Black  757413 0.08715075
+           White 7525114 0.86741820
+           Other  392944 0.04529457
+           Black  757243 0.08728723
 
 
 Medicaid:
  dt_resp$dual       n   percent
-            0 6664355 0.7668255
-            1 2026482 0.2331745
+            0 6651455 0.7667117
+            1 2023846 0.2332883

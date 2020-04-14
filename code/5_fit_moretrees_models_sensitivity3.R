@@ -145,7 +145,7 @@ mod3 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE])
                              tr = tr,
                              nrestarts = 1,
                              print_freq = 1,  
-                             get_ml = TRUE)
+                             get_ml = FALSE)
 
 # Delete g
 moretrees_results <- mod3
