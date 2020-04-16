@@ -97,9 +97,73 @@ for (i in 1:length(dataset)) { # datasets
                   sanitize.text.function = function(x) x),
             file = tabfile)
       
+      # Create tree plots
+      if (mod == 3) {
+         leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
+         groups.df25 <- data.frame(leaves = leaves, 
+                                   Group25 = as.factor(mod25$beta_est$group))
+         mod0$tr <- tr
+         class(mod0) <- "moretrees_result"
+         cols_g <- RColorBrewer::brewer.pal(max(mod0$beta_moretrees$group), "Set3")
+         p <- plot(mod0, group.text.size = 5,
+                   group.text.offset = 0.5,
+                   legend.text.size = 5) %<+% groups.df25 + 
+            geom_tippoint(ggplot2::aes(fill = Group25),
+                          shape = 21, size = 5,
+                          color = "white",
+                          stroke = 0.0001,
+                          position = position_nudge(x = -1.1)) +
+            geom_tiplab(ggplot2::aes(label = Group25),
+                        size = 5,
+                        offset = -1.6,
+                        vjust = 0.5,
+                        hjust = 0.5) +
+            labs(colour = "Model 1 Groups:", fill = "Model 2 Groups:") + 
+            theme(legend.position="bottom",
+                  legend.text = element_text(size = 15),
+                  legend.title = element_text(size = 15),
+                  legend.margin = margin(-8, 20, 0, 20),
+                  legend.box.margin = margin(0, 0, 0, 0)) +
+            guides(colour = guide_legend(order = 1, nrow = 1), 
+                   fill = guide_legend(order = 2, nrow = 1))
+         if (i == 1) p <- p + scale_fill_manual(values = cols_g[c(2, 1, 3, 5, 6)])
+         pltfile <- paste0("./figures/mod", mod, "_", ds, "_tree.pdf")
+         pdf(file = pltfile, width = 12, height = 2.1)
+         p
+         dev.off()
+         
+         # create nested plots
+         pltdat <- get_moretrees_indiv(mod0, nsim = 100000)
+         V(tr)$levels <- as.numeric(igraph::distances(tr, v = root[i],
+                                                           to = V(tr), mode = "out") + 1)
+         xlab <- "Excess Rate (%)"
+         if (i == 1) {
+            lab.widths <- c(0.4,0.4, 0.4, 0.4)
+            lab.txt.width <- c(20, 25, 25, 15)
+            pdf(file = "./figures/cvd_nested_plot_results.pdf", height = 15, width = 12)
+            beta_indiv_plot_fun(pltdat, tr, xlab = xlab, lab.widths = lab.widths,
+                                lab.txt.width = lab.txt.width, axis.height = 1.5,
+                                cil_min = -5, ciu_max = 5,
+                                lab.txt.size = 4, digits = 0, axis.txt.size = 10,
+                                plot_depth = 4, wrap_labs = FALSE)
+            dev.off()
+         }
+         if (i == 2) {
+            lab.widths <- c(0.2, 0.2, 0.4, 0.4)
+            lab.txt.width <- c(20, 25, 25, 15)
+            pdf(file = "./figures/resp_nested_plot_results.pdf", height = 10, width = 12)
+            beta_indiv_plot_fun(pltdat, tr, xlab = xlab, lab.widths = lab.widths,
+                                lab.txt.width = lab.txt.width, axis.height = 1.2,
+                                cil_min = -7, ciu_max = 7,
+                                lab.txt.size = 4, digits = 0, axis.txt.size = 10,
+                                plot_depth = 4, wrap_labs = FALSE,
+                                force_lims = T)
+            dev.off()
+         }
+      }
+      
       # Create matrix plots
       rownames.lab.offset <- 18.8 * (i == 1) + 19.1 * (i == 2)
-      pltfile2 <- paste0("./figures/mod", mod, "_split0_", ds, "_matrix.pdf")
       pdf(file = pltfile2, width = 12, height = 9.5)
       print(equal_betas_plot(prob = mod0$mod$vi_params$prob,
                              groups = mod0$beta_est$group,
@@ -120,14 +184,14 @@ for (i in 1:length(dataset)) { # datasets
 require(reshape2)
 nfolds <- 10
 colnms <- c("Dataset",
-              "Model",
-              "fold",
-              "MOReTreeS",
-              "CLR\n(MOReTrees)",
-              "CLR\n(Level 1)",
-              "CLR\n(Level 2)",
-              "CLR\n(Level 3)",
-              "CLR\n(Level 4)")
+            "Model",
+            "fold",
+            "MOReTreeS",
+            "CLR\n(MOReTrees)",
+            "CLR\n(Level 1)",
+            "CLR\n(Level 2)",
+            "CLR\n(Level 3)",
+            "CLR\n(Level 4)")
 datasetnms <- c("CVD Dataset", "RD Dataset")
 cv.res <- as.data.frame(matrix(nrow = 0, ncol = length(colnms)))
 names(cv.res) <- colnms
@@ -141,9 +205,10 @@ for(i in 1:length(dataset)){
       cv.res <- rbind(cv.res, ll.cv)
    }
 }
+cv.res$`CLR\n(MOReTrees)` <- NULL
 cv.df <- reshape(cv.res, direction = "long",
-              varying = list(colnms[4:9]),
-              times = colnms[4:9])
+                 varying = list(colnms[c(4,6:9)]),
+                 times = colnms[c(4,6:9)])
 names(cv.df)[4:5] <- c("Method", "ll")
 cv.df$Method <- factor(cv.df$Method, levels = colnms[4:9])
 cv.df$Model <- factor(cv.df$Model, levels = c("Model 1", "Model 2"))
@@ -151,27 +216,37 @@ cv.df$id <- NULL
 
 # Best model CVD
 cv.cvd <- subset(cv.res, Dataset == "CVD Dataset")
-cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:9],
-                "mod2" = cv.cvd[11:20, 4:9])
+cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:8],
+                "mod2" = cv.cvd[11:20, 4:8])
 cv.cvd.min <- apply(cv.cvd, 1,
                     function(df) names(df)[which.max(df)])
+ll.cv.cvd <- c(colMeans(cv.res[cv.res$Dataset == "CVD Dataset" & cv.res$Model == "Model 1", 4:8]), 
+      colMeans(cv.res[cv.res$Dataset == "CVD Dataset" & cv.res$Model == "Model 2", 4:8]))
+names(ll.cv.cvd)[1:5] <-paste0(names(ll.cv.cvd)[1:5], "_mod1")
+names(ll.cv.cvd)[6:10] <-paste0(names(ll.cv.cvd)[6:10], "_mod2")
+names(ll.cv.cvd)[order(ll.cv.cvd, decreasing = T)]
 
 # Best model RD
 cv.resp <- subset(cv.res, Dataset == "RD Dataset")
-cv.resp <- cbind("mod1" = cv.resp[1:10, 4:9],
-                "mod2" = cv.resp[11:20, 4:9])
+cv.resp <- cbind("mod1" = cv.resp[1:10, 4:8],
+                 "mod2" = cv.resp[11:20, 4:8])
 cv.resp.min <- apply(cv.resp, 1,
-                    function(df) names(df)[which.max(df)])
+                     function(df) names(df)[which.max(df)])
+ll.cv.resp <- c(colMeans(cv.res[cv.res$Dataset == "RD Dataset" & cv.res$Model == "Model 1", 4:8]), 
+                colMeans(cv.res[cv.res$Dataset == "RD Dataset" & cv.res$Model == "Model 2", 4:8]))
+names(ll.cv.resp)[1:5] <-paste0(names(ll.cv.resp)[1:5], "_mod1")
+names(ll.cv.resp)[6:10] <-paste0(names(ll.cv.resp)[6:10], "_mod2")
+names(ll.cv.resp)[order(ll.cv.resp, decreasing = T)]
 
 # Plot CV results
 cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
    geom_boxplot() +
-   facet_wrap(. ~ Dataset, ncol = 1, scales = "free_y") +
+   facet_wrap(. ~ Dataset, ncol = 2, scales = "free_y") +
    theme_bw(base_size = 22) + 
    scale_fill_grey(start = 0.5, end = 0.8) +
    xlab("Method") +
-   ylab("Mean log likelihood in test set")
+   ylab("Mean log likelihood\nin test set")
 
-pdf("./results/cv_plot.pdf",width = 12, height = 8)
+pdf("./figures/cv_plot.pdf",width = 18, height = 4)
 cv.plot
 dev.off()
