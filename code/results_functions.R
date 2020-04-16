@@ -211,7 +211,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          xlab = "PM2.5",
                          cil_min = -0.1,
                          ciu_max = 0.1,
-                         wrap_labs = TRUE) {
+                         wrap_labs = TRUE,
+                         force_lims = FALSE) {
   # Remove unnecessary columns
   dt_plot[ , lab_col_num := as.integer(factor(ccs_lvl2, levels = unique(ccs_lvl2)))]
   dt_plot <- dt_plot[ , 
@@ -223,6 +224,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
   dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey85", "grey95")]
   lims <- c(max(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE], na.rm = T), cil_min),
             min(max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE], na.rm = T), ciu_max))
+  if (force_lims) lims <- c(cil_min, ciu_max)
   x.ticks <- round(max(abs(lims)) * 3 / 4, digits = digits)
   x.grid <- x.ticks * c(-3/2, -1, -1/2, 1/2, 1, 3/2)
   layout <- integer()
@@ -541,7 +543,7 @@ beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   dt <- data.table(dt)
   names(dt) <- paste0("ccs_lvl", 4:1)
   for (l in 1:L) {
-    dt <- merge(dt, pltdat, by.x = paste0("ccs_lvl", l), by.y = "node")
+    dt <- merge(dt, pltdat, by.x = paste0("ccs_lvl", l), by.y = "node", sort = FALSE)
     setnames(dt, c("est", "cil", "ciu"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l))
     dt[ , paste0("pltlab", l) := str_remove_all(get(paste0("ccs_lvl", l)), "\\.0")]
     if (l < L) {

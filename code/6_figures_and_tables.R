@@ -154,9 +154,10 @@ for (i in 1:length(dataset)) { # datasets
             pdf(file = "./figures/resp_nested_plot_results.pdf", height = 10, width = 12)
             beta_indiv_plot_fun(pltdat, tr, xlab = xlab, lab.widths = lab.widths,
                                 lab.txt.width = lab.txt.width, axis.height = 1.2,
-                                cil_min = -12, ciu_max = 5,
+                                cil_min = -7, ciu_max = 7,
                                 lab.txt.size = 4, digits = 0, axis.txt.size = 10,
-                                plot_depth = 4, wrap_labs = FALSE)
+                                plot_depth = 4, wrap_labs = FALSE,
+                                force_lims = T)
             dev.off()
          }
       }
@@ -219,6 +220,11 @@ cv.cvd <- cbind("mod1" = cv.cvd[1:10, 4:8],
                 "mod2" = cv.cvd[11:20, 4:8])
 cv.cvd.min <- apply(cv.cvd, 1,
                     function(df) names(df)[which.max(df)])
+ll.cv.cvd <- c(colMeans(cv.res[cv.res$Dataset == "CVD Dataset" & cv.res$Model == "Model 1", 4:8]), 
+      colMeans(cv.res[cv.res$Dataset == "CVD Dataset" & cv.res$Model == "Model 2", 4:8]))
+names(ll.cv.cvd)[1:5] <-paste0(names(ll.cv.cvd)[1:5], "_mod1")
+names(ll.cv.cvd)[6:10] <-paste0(names(ll.cv.cvd)[6:10], "_mod2")
+names(ll.cv.cvd)[order(ll.cv.cvd, decreasing = T)]
 
 # Best model RD
 cv.resp <- subset(cv.res, Dataset == "RD Dataset")
@@ -226,6 +232,11 @@ cv.resp <- cbind("mod1" = cv.resp[1:10, 4:8],
                  "mod2" = cv.resp[11:20, 4:8])
 cv.resp.min <- apply(cv.resp, 1,
                      function(df) names(df)[which.max(df)])
+ll.cv.resp <- c(colMeans(cv.res[cv.res$Dataset == "RD Dataset" & cv.res$Model == "Model 1", 4:8]), 
+                colMeans(cv.res[cv.res$Dataset == "RD Dataset" & cv.res$Model == "Model 2", 4:8]))
+names(ll.cv.resp)[1:5] <-paste0(names(ll.cv.resp)[1:5], "_mod1")
+names(ll.cv.resp)[6:10] <-paste0(names(ll.cv.resp)[6:10], "_mod2")
+names(ll.cv.resp)[order(ll.cv.resp, decreasing = T)]
 
 # Plot CV results
 cv.plot <- ggplot(cv.df, aes(x = Method, y = ll, fill = Model)) + 
