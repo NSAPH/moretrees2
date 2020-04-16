@@ -269,6 +269,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         } else {
           disease_wrap <- disease
         }
+        if (str_detect(disease, "blank")) disease <- ""
         lab.col <- as.character(lab.col)
         grob <- ggplot(data.frame(disease = disease_wrap, x = 0, y = y.height), 
                        aes(x = x, y = y, label = disease)) + 
@@ -535,22 +536,21 @@ get_moretrees_indiv <- function(moretrees_results, mult = 10,
 
 beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   L <- max(V(tr)$levels)
-  dt <- data.table(ccs_lvl4 = names(V(tr))[V(tr)$leaf],
-                   ccs_lvl3 = character(length = sum(V(tr)$leaf)),
-                   ccs_lvl2 = character(length = sum(V(tr)$leaf)),
-                   ccs_lvl1 = character(length = sum(V(tr)$leaf)))
   dt <- t(sapply(igraph::ego(tr, order = L, nodes = V(tr)[V(tr)$leaf], mode = "in"), names))
   dt <- data.table(dt)
   names(dt) <- paste0("ccs_lvl", 4:1)
   for (l in 1:L) {
     dt <- merge(dt, pltdat, by.x = paste0("ccs_lvl", l), by.y = "node", sort = FALSE)
-    setnames(dt, c("est", "cil", "ciu"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l))
-    dt[ , paste0("pltlab", l) := str_remove_all(get(paste0("ccs_lvl", l)), "\\.0")]
+    setnames(dt, c("est", "cil", "ciu", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
+    dt[ , paste0("pltlab", l) := paste0(str_remove_all(get(paste0("ccs_lvl", l)), "\\.0"),
+                                        " (n = ", get(paste0("n", l)), ")")]
     if (l < L) {
       for (code in unique(dt[ , paste0("ccs_lvl", l), with = FALSE][[1]])) {
         if(sum(dt[ , paste0("ccs_lvl", l), with = FALSE] == code) == 1) {
           dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
              paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l) := NA]
+           dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
+              paste0("pltlab", l) := paste0("blank", get(paste0("pltlab", l)))]
         }
       }
     }

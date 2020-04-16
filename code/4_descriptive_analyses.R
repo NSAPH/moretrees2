@@ -17,15 +17,15 @@ cols.other <- c("id", "adate", "ssa_state_cd",
           "ozone_lag01_case", "ozone_lag01_control", "zip")
 cols <- c(cols.other, cols.omit)
 
-# # Select states
-excluded_states <- c(2, 12, 40, 48, 53:63, 97:99)
+# Select states
+# excluded_states <- c(2, 12, 40, 48, 53:63, 97:99)
 
 # Load respiratory data
 dt_resp <- read_fst("./data/merged_admissions_enviro/admissions_enviro_resp.fst",
                     as.data.table = T, 
                     columns = cols)
 # Exclude states outside contiguous US
-dt_resp <- dt_resp[!(ssa_state_cd %in% excluded_states)]
+# dt_resp <- dt_resp[!(ssa_state_cd %in% excluded_states)]
 
 # Load CVD data
 dt_cvd <- read_fst("./data/merged_admissions_enviro/admissions_enviro_cvd.fst",
