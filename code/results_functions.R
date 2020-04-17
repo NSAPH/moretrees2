@@ -208,6 +208,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          lab.txt.width = rep(10, plot_depth),
                          axis.height = 1.5,
                          axis.txt.size = 2,
+                         point.size = 2,
                          xlab = "PM2.5",
                          cil_min = -0.1,
                          ciu_max = 0.1,
@@ -218,7 +219,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
   dt_plot <- dt_plot[ , 
                       c(paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl"), 
                              rep(1:plot_depth, each = 5)),
-                        "lab_col_num"), with = FALSE]
+                        "lab_col_num", "mod"), with = FALSE]
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
   # Get some plotting parameters
   dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey85", "grey95")]
@@ -256,7 +257,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
     # Make label plots
     for (disease in diseases) {
       plot.count <- plot.count + 1
-      y.times <- sum(dt_plot[ , get(lab)] == disease)
+      y.times <- sum(dt_plot[ , get(lab)] == disease) / 2
       layout <- c(layout, rep(plot.count, times = y.times))
       lab.col <- as.character(dt_plot[get(lab) == disease]$"lab_col"[1])
       grobs[[plot.count]] <- local({
@@ -269,7 +270,7 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         } else {
           disease_wrap <- disease
         }
-        if (str_detect(disease, "blank")) disease <- ""
+        if (str_detect(disease, "blank")) disease_wrap <- ""
         lab.col <- as.character(lab.col)
         grob <- ggplot(data.frame(disease = disease_wrap, x = 0, y = y.height), 
                        aes(x = x, y = y, label = disease)) + 
@@ -288,25 +289,27 @@ nested_plots <- function(dt_plot, plot_depth = 3,
     # Make point range plots
     for (disease in diseases) {
       plot.count <- plot.count + 1
-      y.times <- sum(dt_plot[ , get(lab)] == disease)
+      y.times <- sum(dt_plot[ , get(lab)] == disease) / 2
       layout <- c(layout, rep(plot.count, times = y.times))
       grobs[[plot.count]] <- local({
         y.min <- 0
         y.max <- y.times
-        y.height <- y.times / 2
+        y.height <- c(y.times / 2 - 0.25, y.times / 2 + 0.25)
         i <- i
         lab <- lab
         xmin <- paste0("cil_lvl", i)
         xmax <- paste0("ciu_lvl", i)
         x <- paste0("est_lvl", i)
         dat <- as.data.frame(dt_plot[get(lab) == disease])
-        dat <- dat[ , c(x, xmin, xmax)]
-        dat[, xmin] <- max(dat[, xmin], lims[1])
-        dat[, xmax] <- min(dat[, xmax], lims[2])
+        dat <- dat[ , c(x, xmin, xmax, "mod")]
+        if (!is.na(dat[1 , xmin])) {
+          dat[dat[ , xmin] <= lims[1], xmin] <- lims[1]
+          dat[dat[ , xmax] >= lims[2], xmax] <- lims[2]
+        }
         dat <- unique(dat)
         dat$disease <- disease
         grob <- ggplot(dat) + 
-          geom_vline(xintercept = 0, color = "red", lwd = 0.4) +
+          geom_vline(xintercept = 0, color = "grey10", lwd = 0.4) +
           geom_vline(xintercept = x.grid[1], color = "grey70",
                      lwd = 0.2, lty = 2) +
           geom_vline(xintercept = x.grid[2], color = "grey70",
@@ -319,12 +322,18 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                      lwd = 0.2, lty = 2) +
           geom_vline(xintercept = x.grid[6], color = "grey70",
                      lwd = 0.2, lty = 2) +
-          geom_errorbarh(aes(xmin = get(xmin), xmax = get(xmax), 
-                             y = y.height), height = errorbar.height) +
-          geom_point(aes(x = get(x), y = y.height)) +
+          geom_errorbarh(aes(xmin = get(xmin), 
+                             xmax = get(xmax), 
+                             y = y.height,
+                             color = mod), 
+                         height = errorbar.height) +
+          geom_point(aes(x = get(x), y = y.height,
+                         shape = mod, color = mod),
+                     size = point.size) +
           theme_void() +
           theme(panel.border = 
-                  element_rect(colour = "black", fill = NA, size = 0.3)) +
+                  element_rect(colour = "black", fill = NA, size = 0.3),
+                legend.position = "none") +
           scale_x_continuous(limits = lims) + 
           scale_y_continuous(limits = c(y.min, y.max)) +
           coord_cartesian(expand = FALSE)
@@ -536,26 +545,30 @@ get_moretrees_indiv <- function(moretrees_results, mult = 10,
 
 beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   L <- max(V(tr)$levels)
-  dt <- t(sapply(igraph::ego(tr, order = L, nodes = V(tr)[V(tr)$leaf], mode = "in"), names))
-  dt <- data.table(dt)
-  names(dt) <- paste0("ccs_lvl", 4:1)
+  dt_plot <- t(sapply(igraph::ego(tr, order = L, nodes = V(tr)[V(tr)$leaf], mode = "in"), names))
+  dt_plot <- data.table(dt_plot)
+  names(dt_plot) <- paste0("ccs_lvl", 4:1)
+  dt_plot2 <- dt_plot
+  dt_plot[ , mod := "MOReTreeS"]
+  dt_plot2[ , mod := "CLR"]
+  dt_plot <- rbind(dt_plot, dt_plot2)
   for (l in 1:L) {
-    dt <- merge(dt, pltdat, by.x = paste0("ccs_lvl", l), by.y = "node", sort = FALSE)
-    setnames(dt, c("est", "cil", "ciu", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
-    dt[ , paste0("pltlab", l) := paste0(str_remove_all(get(paste0("ccs_lvl", l)), "\\.0"),
+    dt_plot <- merge(dt_plot, pltdat, by.x = c(paste0("ccs_lvl", l), "mod"), by.y = c("node", "mod"), sort = FALSE)
+    setnames(dt_plot, c("est", "cil", "ciu", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
+    dt_plot[ , paste0("pltlab", l) := paste0(str_remove_all(get(paste0("ccs_lvl", l)), "\\.0"),
                                         " (n = ", get(paste0("n", l)), ")")]
     if (l < L) {
-      for (code in unique(dt[ , paste0("ccs_lvl", l), with = FALSE][[1]])) {
-        if(sum(dt[ , paste0("ccs_lvl", l), with = FALSE] == code) == 1) {
-          dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
+      for (code in unique(dt_plot[ , paste0("ccs_lvl", l), with = FALSE][[1]])) {
+        if(sum(dt_plot[ , paste0("ccs_lvl", l), with = FALSE] == code) == 2) {
+          dt_plot[dt_plot[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
              paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l) := NA]
-           dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
+           dt_plot[dt_plot[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
               paste0("pltlab", l) := paste0("blank", get(paste0("pltlab", l)))]
         }
       }
     }
   }
   
-  p <- nested_plots(dt, ...)
+  p <- nested_plots(dt_plot, ...)
   return(p)
 }
