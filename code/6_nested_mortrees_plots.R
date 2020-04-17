@@ -135,8 +135,7 @@ for (i in 1:length(dataset)) { # datasets
   pltdat_ml$group <- NULL
   pltdat_ml$outcomes <- NULL
   pltdat_ml <- cbind(pltdat_ml, pltdat[, c("node", "n")])
-  names(pltdat_ml) <- names(pltdat)
-  pltdat_ml[ , c("est", "cil", "ciu")] <- 100 * (exp(pltdat_ml[, c("est", "cil", "ciu")] * 10 ) - 1)
+  pltdat_ml[ , c("est1", "cil1", "ciu1")] <- 100 * (exp(pltdat_ml[, c("est1", "cil1", "ciu1")] * 10 ) - 1)
   pltdat$mod <- "MOReTreeS"
   pltdat_ml$mod <- "CLR"
   pltdat <- rbind(pltdat, pltdat_ml)

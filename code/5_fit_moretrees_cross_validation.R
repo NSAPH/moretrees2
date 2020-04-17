@@ -7,6 +7,7 @@ require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
 require(data.table)
+source("./code/results_functions.R")
 
 # Key parameters
 dataset <- "resp" # "cvd" or "resp"
@@ -180,8 +181,11 @@ ll_fun <- function(v, beta, theta, Xdiff, Wdiff, outcomes, outcomes_unique){
                                     Wdiff[outcomes %in% out, , drop = F] %*% theta[v, ]))
 }
 
-ll.cv <- as.data.frame(matrix(nrow = nfolds, ncol = 7))
-names(ll.cv) <- c("fold", "ll.moretrees", "ll.moretrees.ml", paste0("ll.ml", 1:4))
+ll.cv <- as.data.frame(matrix(nrow = nfolds, ncol = 8))
+names(ll.cv) <- c("fold", "ll.moretrees", 
+                  "ll.moretrees.indiv",
+                  "ll.moretrees.ml", 
+                  paste0("ll.ml", 1:4))
 
 #ll.cv <- foreach(i = 1:nfolds, .combine = cbind) %doPar% {
 for (i in 1:nfolds) {
@@ -235,6 +239,9 @@ for (i in 1:nfolds) {
   theta_est <- mod_mt$theta_est
   beta_ml <- mod_mt$beta_ml
   theta_ml <- mod_mt$theta_ml
+  mod_mt$tr <- tr
+  beta_est_indiv <- get_moretrees_indiv(mod_mt, mult = 1, get_ci = FALSE, er = FALSE)
+  beta_est_indiv <- beta_est_indiv[row.names(beta_est), ]
   rm(mod_mt)
   
   # Get test set log likelihood for moretrees
@@ -242,6 +249,14 @@ for (i in 1:nfolds) {
   ll.moretrees <- mean(unlist(sapply(X = 1:length(out), 
                                      FUN = ll_fun, 
                                      beta = as.matrix(beta_est[ , paste0("est", 1:length(X_cols_case)), drop = F]),
+                                     theta = as.matrix(theta_est[ , paste0("est", 1:length(W_cols_case)), drop = F]),
+                                     Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
+                                     Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
+                                     outcomes = dt[folds == i, level4],
+                                     outcomes_unique = out)))
+  ll.moretrees.indiv <- mean(unlist(sapply(X = 1:length(out), 
+                                     FUN = ll_fun, 
+                                     beta = as.matrix(beta_est_indiv[ , paste0("est", 1:length(X_cols_case)), drop = F]),
                                      theta = as.matrix(theta_est[ , paste0("est", 1:length(W_cols_case)), drop = F]),
                                      Xdiff = as.matrix(dt[folds == i, X_cols_case, with = F] - dt[folds == i, X_cols_control, with = F]),
                                      Wdiff = as.matrix(dt[folds == i, W_cols_case, with = F] - dt[folds == i, W_cols_control, with = F]),
@@ -257,7 +272,7 @@ for (i in 1:nfolds) {
                                         outcomes_unique = beta_ml$outcomes)))
   
   # Result
-  ll.cv[i, ] <- c(i, ll.moretrees, ll.moretrees.ml, ll.ml)
+  ll.cv[i, ] <- c(i, ll.moretrees, ll.moretrees.indiv, ll.moretrees.ml, ll.ml)
 }
 
 ############### Save results ###############

@@ -507,7 +507,9 @@ sim.prior.fun <- function(levels, A_leaf,
 }
 
 get_moretrees_indiv <- function(moretrees_results, mult = 10,
-                                nsim = 1000) {
+                                nsim = 1000,
+                                get_ci = TRUE,
+                                er = TRUE) {
   tr <- moretrees_results$tr
   A <- igraph::as_adjacency_matrix(tr, sparse = T)
   A <- Matrix::expm(Matrix::t(A))
@@ -519,26 +521,33 @@ get_moretrees_indiv <- function(moretrees_results, mult = 10,
                   prob, mu,
                   SIMPLIFY = FALSE)
   mu_var <- lapply(moretrees_results$mod$vi_params$Sigma, diag)
-  gamma_mat <- matrix(nrow = length(V(tr)), ncol = ncol(mu[[1]]))
+  K <- nrow(mu[[1]])
+  gamma_mat <- as.data.frame(matrix(nrow = length(V(tr)), ncol = K))
   beta_mat <- gamma_mat
   beta_cil <- gamma_mat
   beta_ciu <- gamma_mat
-  for (i in 1:nrow(gamma_mat)) {
-    gamma_mat[i, ] <- gamma[[i]]
+  for (v in 1:length(gamma)) {
+    gamma_mat[v, ] <- gamma[[v]]
   }
-  for (k in 1:ncol(gamma_mat)) {
+  for (k in 1:K) {
     beta_mat[ , k] <- as.numeric(A %*% gamma_mat[ , k]) * mult
-    gamma_sim <- mapply(function(prob, mu, mu_var) rbinom(nsim, 1, prob) * rnorm(nsim, mu, sqrt(mu_var)),
-                        prob, mu, mu_var)
-    beta_sim <- apply(gamma_sim, 1, function(g, A) as.numeric(A %*% g), A = A) * mult
-    beta_cil[ , k] <- apply(beta_sim, 1, quantile, prob = 0.025)
-    beta_ciu[ , k] <- apply(beta_sim, 1, quantile, prob = 0.975)
+    if (get_ci) {
+      gamma_sim <- mapply(function(prob, mu, mu_var) rbinom(nsim, 1, prob) * rnorm(nsim, mu, sqrt(mu_var)),
+                          prob, mu, mu_var)
+      beta_sim <- apply(gamma_sim, 1, function(g, A) as.numeric(A %*% g), A = A) * mult
+      beta_cil[ , k] <- apply(beta_sim, 1, quantile, prob = 0.025)
+      beta_ciu[ , k] <- apply(beta_sim, 1, quantile, prob = 0.975)
+    } else {
+      beta_cil[ , k] <- as.numeric(beta_cil[ , k])
+      beta_ciu[ , k] <- as.numeric(beta_ciu[ , k])
+    }
   }
+  names(beta_mat) <- paste0("est", 1:K)
+  names(beta_cil) <- paste0("cil", 1:ncol(gamma_mat))
+  names(beta_ciu) <- paste0("ciu", 1:ncol(gamma_mat))
   m <- cbind(beta_mat, beta_cil, beta_ciu)
   row.names(m) <- row.names(A)
-  m <- 100 * (exp(m) - 1)
-  m <- as.data.frame(m)
-  names(m) <- c("est", "cil", "ciu")
+  if (er) m <- 100 * (exp(m) - 1)
   m$node <- row.names(m)
   return(m)
 }
@@ -554,7 +563,7 @@ beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   dt_plot <- rbind(dt_plot, dt_plot2)
   for (l in 1:L) {
     dt_plot <- merge(dt_plot, pltdat, by.x = c(paste0("ccs_lvl", l), "mod"), by.y = c("node", "mod"), sort = FALSE)
-    setnames(dt_plot, c("est", "cil", "ciu", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
+    setnames(dt_plot, c("est1", "cil1", "ciu1", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
     dt_plot[ , paste0("pltlab", l) := paste0(str_remove_all(get(paste0("ccs_lvl", l)), "\\.0"),
                                         " (n = ", get(paste0("n", l)), ")")]
     if (l < L) {
