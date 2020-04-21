@@ -4,7 +4,7 @@ setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 source("./code/results_functions.R")
 require(fst)
 require(splines)
-dataset <- "cvd"
+dataset <- "resp"
 root <- c("7", "8")
 mod <- 3
 split <- "0"
@@ -118,7 +118,7 @@ clr_res <- moretrees:::ml_by_group(X = dt[, X_cols_case, with = F] - dt[, X_cols
 pltdat_ml <- clr_res$beta_ml
 pltdat_ml$group <- pltdat_ml$outcomes <- NULL
 pltdat_ml$node <- names(V(tr))
-pltdat_ml$n <- sapply(outcomes_nodes, function(o) sum(dt$ccs_added_zeros %in% o))$beta_ml
+pltdat_ml$n <- sapply(outcomes_nodes, function(o) sum(dt$ccs_added_zeros %in% o))
 pltdat_ml_theta <- clr_res$theta_ml
 
 # Save
