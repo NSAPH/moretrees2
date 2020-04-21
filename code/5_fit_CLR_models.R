@@ -99,25 +99,30 @@ V(tr)$levels <- as.numeric(igraph::distances(tr, v = root,
 
 # get CLR estimates for every group on tree
 d <- igraph::diameter(tr)
-descendants <- igraph::ego(tr, order = d + 1, nodes = pltdat$node,
+descendants <- igraph::ego(tr, order = d + 1, nodes = names(V(tr)),
                            mode = "out")
 descendants <- sapply(descendants, names)
 leaves <- names(igraph::V(tr)[igraph::degree(tr, mode = "out") == 0])
 outcomes_nodes <- sapply(descendants, function(d, leaves) leaves[leaves %in%
                                                                    d], leaves = leaves, simplify = F)
 
-pltdat_ml <- moretrees:::ml_by_group(X = dt[, X_cols_case, with = F] - dt[, X_cols_control, with = F],
+clr_res <- moretrees:::ml_by_group(X = dt[, X_cols_case, with = F] - dt[, X_cols_control, with = F],
                                      W = dt[, W_cols_case, with = F] - dt[, W_cols_control, with = F],
                                      y = rep(1, nrow(dt)),
                                      outcomes = dt[, ccs_added_zeros],
                                      outcome_groups = outcomes_nodes,
-                                     return_theta = F,
+                                     return_theta = T,
                                      return_ci = T,
                                      ci_level = 0.95,
-                                     family = "binomial")$beta_ml
+                                     family = "binomial")
+pltdat_ml <- clr_res$beta_ml
 pltdat_ml$group <- pltdat_ml$outcomes <- NULL
 pltdat_ml$node <- names(V(tr))
-pltdat$n <- sapply(outcomes_nodes, function(o) sum(dt$ccs_added_zeros %in% o))$beta_ml
+pltdat_ml$n <- sapply(outcomes_nodes, function(o) sum(dt$ccs_added_zeros %in% o))$beta_ml
+pltdat_ml_theta <- clr_res$theta_ml
 
 # Save
 save(pltdat_ml, tr, file = paste0("./results/nest_pltdat_", dataset, ".RData"))
+save(tmmx_internal_knots, tmmx_boundary_knots, rmax_internal_knots, rmax_boundary_knots, pltdat_ml_theta,
+     file = paste0("./results/theta_pltdat_", dataset, ".RData"))
+
