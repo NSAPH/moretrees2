@@ -215,13 +215,17 @@ nested_plots <- function(dt_plot, plot_depth = 3,
                          force_lims = FALSE) {
   # Remove unnecessary columns
   dt_plot[ , lab_col_num := as.integer(factor(ccs_lvl2, levels = unique(ccs_lvl2)))]
+  dt_plot[ , lab_col_num2 := as.integer(factor(ccs_lvl3, levels = unique(ccs_lvl3)))]
   dt_plot <- dt_plot[ , 
                       c(paste0(c("pltlab", "est_lvl", "cil_lvl", "ciu_lvl"), 
                              rep(1:plot_depth, each = 5)),
-                        "lab_col_num"), with = FALSE]
+                        "lab_col_num", "lab_col_num2"), with = FALSE]
   dt_plot <- dt_plot[!duplicated(dt_plot), ]
   # Get some plotting parameters
-  dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey85", "grey95")]
+  dt_plot[ , lab_col := ifelse(lab_col_num %% 2 == 1, "grey70", "grey90")]
+  dt_plot[ , lab_col2 := ifelse(lab_col_num %% 2 == 1, 
+                                ifelse(lab_col_num2 %% 2 == 1, "grey65", "grey75"), 
+                                ifelse(lab_col_num2 %% 2 == 1, "grey85", "grey95"))]
   lims <- c(max(min(dt_plot[ , paste0("cil_lvl", 1:plot_depth), with = FALSE], na.rm = T), cil_min),
             min(max(dt_plot[ , paste0("ciu_lvl", 1:plot_depth), with = FALSE], na.rm = T), ciu_max))
   if (force_lims) lims <- c(cil_min, ciu_max)
@@ -258,7 +262,8 @@ nested_plots <- function(dt_plot, plot_depth = 3,
       plot.count <- plot.count + 1
       y.times <- sum(dt_plot[ , get(lab)] == disease)
       layout <- c(layout, rep(plot.count, times = y.times))
-      lab.col <- as.character(dt_plot[get(lab) == disease]$"lab_col"[1])
+      if (i <= 2) lab.col <- as.character(dt_plot[get(lab) == disease]$"lab_col"[1])
+      if (i >= 3) lab.col <- as.character(dt_plot[get(lab) == disease]$"lab_col2"[1])
       grobs[[plot.count]] <- local({
         y.height <- y.times / 2
         if (y.times > 1 & wrap_labs) {
@@ -269,7 +274,6 @@ nested_plots <- function(dt_plot, plot_depth = 3,
         } else {
           disease_wrap <- disease
         }
-        if (str_detect(disease, "blank")) disease <- ""
         lab.col <- as.character(lab.col)
         grob <- ggplot(data.frame(disease = disease_wrap, x = 0, y = y.height), 
                        aes(x = x, y = y, label = disease)) + 
@@ -497,43 +501,6 @@ sim.prior.fun <- function(levels, A_leaf,
            median.size = median(groups.size)))
 }
 
-get_moretrees_indiv <- function(moretrees_results, mult = 10,
-                                nsim = 1000) {
-  tr <- moretrees_results$tr
-  A <- igraph::as_adjacency_matrix(tr, sparse = T)
-  A <- Matrix::expm(Matrix::t(A))
-  A[A > 0 ] <- 1 
-  A <- Matrix::Matrix(A, sparse = T)
-  prob <- moretrees_results$mod$vi_params$prob
-  mu <- moretrees_results$mod$vi_params$mu
-  gamma <- mapply(`*`,
-                  prob, mu,
-                  SIMPLIFY = FALSE)
-  mu_var <- lapply(moretrees_results$mod$vi_params$Sigma, diag)
-  gamma_mat <- matrix(nrow = length(V(tr)), ncol = ncol(mu[[1]]))
-  beta_mat <- gamma_mat
-  beta_cil <- gamma_mat
-  beta_ciu <- gamma_mat
-  for (i in 1:nrow(gamma_mat)) {
-    gamma_mat[i, ] <- gamma[[i]]
-  }
-  for (k in 1:ncol(gamma_mat)) {
-    beta_mat[ , k] <- as.numeric(A %*% gamma_mat[ , k]) * mult
-    gamma_sim <- mapply(function(prob, mu, mu_var) rbinom(nsim, 1, prob) * rnorm(nsim, mu, sqrt(mu_var)),
-                        prob, mu, mu_var)
-    beta_sim <- apply(gamma_sim, 1, function(g, A) as.numeric(A %*% g), A = A) * mult
-    beta_cil[ , k] <- apply(beta_sim, 1, quantile, prob = 0.025)
-    beta_ciu[ , k] <- apply(beta_sim, 1, quantile, prob = 0.975)
-  }
-  m <- cbind(beta_mat, beta_cil, beta_ciu)
-  row.names(m) <- row.names(A)
-  m <- 100 * (exp(m) - 1)
-  m <- as.data.frame(m)
-  names(m) <- c("est", "cil", "ciu")
-  m$node <- row.names(m)
-  return(m)
-}
-
 beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   L <- max(V(tr)$levels)
   dt <- t(sapply(igraph::ego(tr, order = L, nodes = V(tr)[V(tr)$leaf], mode = "in"), names))
@@ -541,19 +508,19 @@ beta_indiv_plot_fun <- function(pltdat, tr, ...) {
   names(dt) <- paste0("ccs_lvl", 4:1)
   for (l in 1:L) {
     dt <- merge(dt, pltdat, by.x = paste0("ccs_lvl", l), by.y = "node", sort = FALSE)
-    setnames(dt, c("est", "cil", "ciu", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
+    setnames(dt, c("est1", "cil1", "ciu1", "n"), paste0(c("est_lvl", "cil_lvl", "ciu_lvl", "n"), l))
     dt[ , paste0("pltlab", l) := paste0(str_remove_all(get(paste0("ccs_lvl", l)), "\\.0"),
                                         " (n = ", get(paste0("n", l)), ")")]
-    if (l < L) {
-      for (code in unique(dt[ , paste0("ccs_lvl", l), with = FALSE][[1]])) {
-        if(sum(dt[ , paste0("ccs_lvl", l), with = FALSE] == code) == 1) {
-          dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
-             paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l) := NA]
-           dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
-              paste0("pltlab", l) := paste0("blank", get(paste0("pltlab", l)))]
-        }
-      }
-    }
+    # if (l < L) {
+    #   for (code in unique(dt[ , paste0("ccs_lvl", l), with = FALSE][[1]])) {
+    #     if(sum(dt[ , paste0("ccs_lvl", l), with = FALSE] == code) == 1) {
+    #       dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
+    #          paste0(c("est_lvl", "cil_lvl", "ciu_lvl"), l) := NA]
+    #        dt[dt[ , paste0("ccs_lvl", l), with = FALSE][[1]] == code, 
+    #           paste0("pltlab", l) := paste0("blank", get(paste0("pltlab", l)))]
+    #     }
+    #   }
+    # }
   }
   
   p <- nested_plots(dt, ...)
