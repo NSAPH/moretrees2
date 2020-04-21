@@ -12,7 +12,7 @@ source("./code/results_functions.R")
 # Key parameters
 dataset <- "resp" # "cvd" or "resp"
 split <- "25" # "0" or "25"
-mod <- 2
+mod <- 3
 nfolds <- 10
 set.seed(292345)
 seed <- sample(1:1E6, 2)
