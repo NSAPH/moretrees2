@@ -16,15 +16,24 @@ nplt <- 1000
 for (i in 1:length(dataset)) { # datasets
   ds <- dataset[i]
 
-  load(paste0("./results/theta_pltdat_", ds, ".RData"))
+  load(paste0("./results/theta_pltdat_", ds, ".RData"), verbose = TRUE)
   load(paste0("./results/mod3_split0_", ds, ".Rdata"))
   theta_est <- moretrees_results$theta_est
+  theta_est_clr <- pltdat_ml_theta
+  theta_est_clr$group <- NULL
+  theta_est_clr$outcomes <- sapply(theta_est_clr$outcomes, paste0, collapse = "")
+  theta_est_clr <- theta_est_clr[theta_est_clr$outcomes %in% row.names(theta_est), ]
+  theta_est_clr <- theta_est_clr[!duplicated(theta_est_clr), ]
+  theta_est_clr <- theta_est_clr[match(row.names(theta_est), theta_est_clr$outcomes), ]
+  all.equal(theta_est_clr$outcomes, row.names(theta_est))
+  theta_est_clr <- theta_est_clr[ , paste0("est", 1:6)]
   
   # Temp
   tmmx <- seq(tmmx_boundary_knots[1], tmmx_boundary_knots[2], length.out = nplt)
   spl_tmmx <- ns(tmmx, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots)
   theta_tmmx <- theta_est[ , paste0("est", 1:3)]
   tmmx_df <- as.data.frame(spl_tmmx %*% t(theta_tmmx))
+  tmmx_clr <- as.data.frame(spl_tmmx %*% t(theta_est_clr[ , 1:3]))
   names(tmmx_df) <- row.names(theta_est)
   
   # Humidity
@@ -32,6 +41,7 @@ for (i in 1:length(dataset)) { # datasets
   spl_rmax <- ns(rmax, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots)
   theta_rmax <- theta_est[ , paste0("est", 4:6)]
   rmax_df <- as.data.frame(spl_rmax %*% t(theta_rmax))
+  rmax_clr <- as.data.frame(spl_tmmx %*% t(theta_est_clr[ , 4:6]))
   names(rmax_df) <- row.names(theta_est)
   
   # Get tree
@@ -81,6 +91,7 @@ for (i in 1:length(dataset)) { # datasets
   tmmx_df$rr <- exp(tmmx_df$lrr)
   tmmx_df$cil <- exp(tmmx_df$cil)
   tmmx_df$ciu <- exp(tmmx_df$ciu)
+  tmmx_df$rr_clr <- exp(melt(tmmx_clr)$value)
   
   # Plot temp
   require(ggplot2)
@@ -88,10 +99,12 @@ for (i in 1:length(dataset)) { # datasets
     geom_ribbon(aes(ymin = cil, ymax = ciu),
                 alpha = 0.5) +
     geom_line() +
+    geom_line(aes(x = tmmx, y = rr_clr), col = "red", lty = 2) +
     facet_wrap( . ~ outcome, nrow = 10) +
     theme_minimal() +
     ylab("Rate Ratio") +
-    xlab("Temperature (Celsius)")
+    xlab("Temperature (Celsius)")  +
+    ylim(0.8, 3)
   pdf(file = paste0("./figures/temp_RR_", ds, ".pdf"),
                     width = 8, height = 10)
   print(plt)
@@ -110,6 +123,7 @@ for (i in 1:length(dataset)) { # datasets
   rmax_df$rr <- exp(rmax_df$lrr)
   rmax_df$cil <- exp(rmax_df$cil)
   rmax_df$ciu <- exp(rmax_df$ciu)
+  rmax_df$rr_clr <- exp(melt(rmax_clr)$value)
   
   # Plot humidity
   require(ggplot2)
@@ -117,10 +131,12 @@ for (i in 1:length(dataset)) { # datasets
     geom_ribbon(aes(ymin = cil, ymax = ciu),
                 alpha = 0.5) +
     geom_line() +
+    geom_line(aes(x = rmax, y = rr_clr), col = "red", lty = 2) +
     facet_wrap( . ~ outcome, nrow = 10) +
     theme_minimal() +
     ylab("Rate Ratio") +
-    xlab("Humidity (%)")
+    xlab("Humidity (%)") +
+    ylim(0.8, 1.5)
   pdf(file = paste0("./figures/humidity_RR_", ds, ".pdf"),
       width = 8, height = 10)
   print(plt)
