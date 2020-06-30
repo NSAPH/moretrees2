@@ -2,15 +2,14 @@
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
 # Check for updates on moretrees master branch
-# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel",)
+# devtools::install_github("emgthomas/moretrees_pkg")
 require(moretrees)
 # note: for some updates, may have to restart R session
 require(fst)
 
 # Key parameters
 dataset <- "cvd" # "cvd" or "resp"
-split <- "0" # "0", "25", or "35"
-hyper_method <- "EB" # only EB
+split <- "25" # "0" (no knot) or "25" (piecewise linear pm2.5 effect with knot at pm2.5 = 25)
 
 # Controls
 tol <- 1E-8 
@@ -44,40 +43,35 @@ if (split %in% c("25", "35")) {
   dt[ , pm25_blw_control := ifelse(pm25_lag01_control <= split_val, pm25_lag01_control, 0)]
   dt[ , pm25_abv_control := ifelse(pm25_lag01_control > split_val, pm25_lag01_control, 0)]
   
-  # Get difference between case and control
-  dt[ , pm25_blw := pm25_blw_case - pm25_blw_control]
-  dt[ , pm25_abv := pm25_abv_case - pm25_abv_control]
-  
   # Which columns indicate exposure
-  X_cols <- c("pm25_blw", "pm25_abv")
+  X_cols_case <- c("pm25_blw_case", "pm25_abv_case")
+  X_cols_control <- c("pm25_blw_control", "pm25_abv_control")
   
 } else {
-  # Get difference between case and control
-  dt[ , pm25 := pm25_lag01_case - pm25_lag01_control]
-  
   # Which columns indicate exposure
-  X_cols <- "pm25"
+  X_cols_case <- "pm25_lag01_case"
+  X_cols_control <- "pm25_lag01_control"
 }
 
-# Get difference between case and control for covariates
-dt[ , tmmx := tmmx_lag01_case - tmmx_lag01_control]
-dt[ , rmax := rmax_lag01_case - rmax_lag01_control]
-dt[ , ozone := ozone_lag01_case - ozone_lag01_control]
-
 # Divide covariates by their standard deviation
-sd_tmmx <- sd(dt$tmmx, na.rm = T)
-sd_rmax <- sd(dt$rmax, na.rm = T)
-sd_ozone <- sd(dt$ozone, na.rm = T)
-dt[ , tmmx := tmmx / sd_tmmx]
-dt[ , rmax := rmax / sd_rmax]
-dt[ , ozone := ozone / sd_ozone]
+sd_tmmx <- sd(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]), na.rm = T)
+dt[ , tmmx_lag01_case := tmmx_lag01_case / sd_tmmx]
+dt[ , tmmx_lag01_control := tmmx_lag01_control / sd_tmmx]
+sd_rmax <- sd(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), na.rm = T)
+dt[ , rmax_lag01_case := rmax_lag01_case / sd_rmax]
+dt[ , rmax_lag01_control := rmax_lag01_control / sd_rmax]
+sd_ozone <- sd(unlist(dt[ , c("ozone_lag01_case", "ozone_lag01_control")]), na.rm = T)
+dt[ , ozone_lag01_case := ozone_lag01_case / sd_ozone]
+dt[ , ozone_lag01_control := ozone_lag01_control / sd_ozone]
+
+# Which columns indicate covariates
+W_cols_case <- c("tmmx_lag01_case", "rmax_lag01_case", "ozone_lag01_case")
+W_cols_control <- c("tmmx_lag01_control", "rmax_lag01_control", "ozone_lag01_control")
 
 # Keep only necessary variables
-dt <- dt[ , c(X_cols, "ccs_added_zeros",
-              "tmmx", "rmax", "ozone",
-              "tmmx_lag01_case", "tmmx_lag01_control",
-              "rmax_lag01_case", "rmax_lag01_control",
-              "ozone_lag01_case", "ozone_lag01_control"), with = FALSE]
+dt <- dt[ , c(X_cols_case, X_cols_control,
+              W_cols_case, W_cols_control,
+              "ccs_added_zeros"), with = FALSE]
 
 # Remove NA rows (moretrees doesn't do this automatically)
 dt <- na.omit(dt)
@@ -105,10 +99,10 @@ V(tr)$levels <- 1
 V(tr)$levels[V(tr)$leaf] <- 2
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
-mod2 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
-                             W = as.matrix(dt[ , c("tmmx", "rmax", "ozone")]),
-                             y = rep(1, nrow(dt)), 
-                             hyper_method = hyper_method,
+mod2 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE]), 
+                             Xcontrol = as.matrix(dt[ , X_cols_control, with = FALSE]), 
+                             Wcase = as.matrix(dt[ , W_cols_case, with = FALSE]),
+                             Wcontrol = as.matrix(dt[ , W_cols_control, with = FALSE]),
                              outcomes = dt$ccs_added_zeros,
                              max_iter = max_iter,
                              update_hyper_freq = update_hyper_freq,
@@ -136,51 +130,52 @@ nknots <- 2
 q <- seq(0, 1, length.out = nknots + 2)
 
 # Get splines for temperature
-sd_tmmx <- sd(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]))
-dt[ , tmmx_lag01_case := tmmx_lag01_case / sd_tmmx]
-dt[ , tmmx_lag01_control := tmmx_lag01_control / sd_tmmx]
 tmmx_knots <- quantile(unlist(dt[ , c("tmmx_lag01_case", "tmmx_lag01_control")]), probs = q)
 tmmx_internal_knots <- tmmx_knots[2:(length(tmmx_knots) - 1)]
 tmmx_boundary_knots <- c(tmmx_knots[1], tmmx_knots[length(tmmx_knots)])
-dt[ , paste0("tmmx_spl", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots)
-                                                          - ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+dt[ , paste0("tmmx_spl_case", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_case, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
+dt[ , paste0("tmmx_spl_control", 1:(nknots + 1)) := as.data.table(ns(tmmx_lag01_control, knots = tmmx_internal_knots, Boundary.knots = tmmx_boundary_knots))]
 
 # Get splines for humidity
-sd_rmax <- sd(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]))
-dt[ , rmax_lag01_case := rmax_lag01_case / sd_rmax]
-dt[ , rmax_lag01_control := rmax_lag01_control / sd_rmax]
 rmax_knots <- quantile(unlist(dt[ , c("rmax_lag01_case", "rmax_lag01_control")]), probs = q)
 rmax_internal_knots <- rmax_knots[2:(length(rmax_knots) - 1)]
 rmax_boundary_knots <- c(rmax_knots[1], rmax_knots[length(rmax_knots)])
-dt[ , paste0("rmax_spl", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots)
-                                                          - ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
+dt[ , paste0("rmax_spl_case", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_case, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
+dt[ , paste0("rmax_spl_control", 1:(nknots + 1)) := as.data.table(ns(rmax_lag01_control, knots = rmax_internal_knots, Boundary.knots = rmax_boundary_knots))]
 
 # Get splines for ozone
-sd_ozone <- sd(unlist(dt[ , c("ozone_lag01_case", "ozone_lag01_control")]))
-dt[ , ozone_lag01_case := ozone_lag01_case / sd_ozone]
-dt[ , ozone_lag01_control := ozone_lag01_control / sd_ozone]
 ozone_knots <- quantile(unlist(dt[ , c("ozone_lag01_case", "ozone_lag01_control")]), probs = q)
 ozone_internal_knots <- ozone_knots[2:(length(ozone_knots) - 1)]
 ozone_boundary_knots <- c(ozone_knots[1], ozone_knots[length(ozone_knots)])
-dt[ , paste0("ozone_spl", 1:(nknots + 1)) := as.data.table(ns(ozone_lag01_case, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots)
-                                                           - ns(ozone_lag01_control, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots))]
-
+dt[ , paste0("ozone_spl_case", 1:(nknots + 1)) := as.data.table(ns(ozone_lag01_case, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots))]
+dt[ , paste0("ozone_spl_control", 1:(nknots + 1)) := as.data.table(ns(ozone_lag01_control, knots = ozone_internal_knots, Boundary.knots = ozone_boundary_knots))]
 
 # Remove unnecessary columns to save memory
 dt[ , c("tmmx_lag01_case", "tmmx_lag01_control", 
         "rmax_lag01_case", "rmax_lag01_control",
         "ozone_lag01_case", "ozone_lag01_control") := NULL]
 
+# Which columns indicated covariate splines
+W_cols_case <- c(paste0("tmmx_spl_case", 1:(nknots + 1)), 
+                 paste0("rmax_spl_case", 1:(nknots + 1)),
+                 paste0("ozone_spl_case", 1:(nknots + 1)))
+W_cols_control <- c(paste0("tmmx_spl_control", 1:(nknots + 1)), 
+                    paste0("rmax_spl_control", 1:(nknots + 1)),
+                    paste0("ozone_spl_control", 1:(nknots + 1)))
+
+# initial values
+vi_params_init <- mod2$mod$vi_params[c("prob", "mu", "Sigma",
+                                       "Sigma_inv", "Sigma_det",
+                                       "tau_t", "a_t", "b_t")]
+hyperparams_init <- mod2$mod$hyperparams[c("eta", "tau")]
+
 # Run model
-W_cols <- c(paste0("tmmx_spl", 1:(nknots + 1)), 
-            paste0("rmax_spl", 1:(nknots + 1)),
-            paste0("ozone_spl", 1:(nknots + 1)))
-mod3 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]), 
-                             W = as.matrix(dt[ , W_cols, with = FALSE]),
-                             y = rep(1, nrow(dt)),
+mod3 <- moretrees::moretrees(Xcase = as.matrix(dt[ , X_cols_case, with = FALSE]), 
+                             Xcontrol = as.matrix(dt[ , X_cols_control, with = FALSE]), 
+                             Wcase = as.matrix(dt[ , W_cols_case, with = FALSE]),
+                             Wcontrol = as.matrix(dt[ , W_cols_control, with = FALSE]),
                              outcomes = dt$ccs_added_zeros,
                              max_iter = max_iter,
-                             hyper_method = hyper_method,
                              update_hyper_freq = update_hyper_freq,
                              tol = tol_hyper,
                              tol_hyper = tol_hyper,
@@ -188,7 +183,6 @@ mod3 <- moretrees::moretrees(X = as.matrix(dt[ , X_cols, with = FALSE]),
                              nrestarts = 1,
                              print_freq = 1,  
                              get_ml = TRUE)
-
 # Delete g
 moretrees_results <- mod3
 moretrees_results$mod$hyperparams$g_eta <- NULL

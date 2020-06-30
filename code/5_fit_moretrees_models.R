@@ -11,7 +11,7 @@ require(fst)
 
 # Key parameters
 dataset <- "cvd" # "cvd" or "resp"
-split <- "25" # "0" or "25"
+split <- "25" # "0" (no knot) or "25" (piecewise linear pm2.5 effect with knot at pm2.5 = 25)
 
 # Prior parameters
 a <- c(1, 1)

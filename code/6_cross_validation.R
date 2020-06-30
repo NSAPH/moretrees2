@@ -10,10 +10,10 @@ require(data.table)
 
 # Key parameters
 dataset <- "resp" # "cvd" or "resp"
-split <- "25" # "0" or "25"
-mod <- 2
+split <- "25" # "0" (no knot) or "25" (piecewise linear pm2.5 effect with knot at pm2.5 = 25)
+mod <- 3 # mod 3 includes nonlinear effects of temp and humidity
 nfolds <- 10
-set.seed(292345)
+set.seed(292345) # don't change the seed!!
 seed <- sample(1:1E6, 2)
 if (dataset == "cvd") {
   seed <- seed[1]
