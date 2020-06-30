@@ -3,7 +3,7 @@ setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
 
 library(NSAPHutils)
 set_threads()
-# devtools::install_github("emgthomas/moretrees_pkg", ref = "devel")
+# devtools::install_github("emgthomas/moretrees_pkg")
 require(moretrees)
 library(data.table)
 library(fst)
