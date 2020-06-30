@@ -115,7 +115,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod1_split", split, "_", dataset, "_sens.RData"))
+save(moretrees_results, file = paste0("./results/mod1_split", split, "_", dataset, "_sens4.RData"))
 
 # Model 2: linear covariate control ------------------------------------------------------------------------------------
 vi_params_init <- mod1$mod$vi_params[c("prob", "mu", "Sigma",
@@ -145,7 +145,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = paste0("./results/mod2_split", split, "_", dataset, "_sens.RData"))
+save(moretrees_results, sd_tmmx, sd_rmax, file = paste0("./results/mod2_split", split, "_", dataset, "_sens4.RData"))
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -204,6 +204,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, sd_tmmx, sd_rmax, file = paste0("./results/mod3_split", split, "_", dataset, "_sens.RData"))
+save(moretrees_results, sd_tmmx, sd_rmax, file = paste0("./results/mod3_split", split, "_", dataset, "_sens4.RData"))
 
 
