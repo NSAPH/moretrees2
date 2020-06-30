@@ -1,6 +1,8 @@
 # Make sure working directory is set to moretrees2/code
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/")
 
+## This code runs the main analysis + sensitivity analysis 1
+
 # Check for updates on moretrees master branch
 # devtools::install_github("emgthomas/moretrees_pkg", ref = "simplified",)
 require(moretrees)

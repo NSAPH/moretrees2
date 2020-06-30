@@ -31,7 +31,7 @@ dt <- read_fst(paste0("./data/merged_admissions_enviro/admissions_enviro_", data
                            "tmmx_lag01_case", "tmmx_lag01_control",
                            "rmax_lag01_case", "rmax_lag01_control"))
 
-# First admission only
+# All admissions beyond first admission
 dt <- dt[order(id, adate)]
 dt[ , id_n := seq_len(.N), by = id]
 dt <- dt[id_n > 1]
