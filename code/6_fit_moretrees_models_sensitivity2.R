@@ -119,7 +119,7 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_ozone.RData"))
+save(moretrees_results, file = paste0("./results/mod2_split", split, "_", dataset, "_sens2.RData"))
 
 # Model 3: spline covariate control ------------------------------------------------------------------------------------
 
@@ -189,6 +189,6 @@ moretrees_results$mod$hyperparams$g_eta <- NULL
 moretrees_results$mod$hyperparams$eta <- NULL
 
 # save
-save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_ozone.RData"))
+save(moretrees_results, file = paste0("./results/mod3_split", split, "_", dataset, "_sens2.RData"))
 
 
