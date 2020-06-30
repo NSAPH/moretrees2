@@ -1,5 +1,3 @@
-# Code to get admission counts by person, by year for medicare data
-
 # Make sure working directory is set to moretrees2/code
 setwd("/nfs/home/E/ethomas/shared_space/ci3_analysis/moretrees2/code/")
 
