@@ -34,3 +34,5 @@ Scripts should be run in order of the digit at the start of the file name, i.e.,
       - Produces all figures shown in appendices.
   - `9_tables_sensitivityX.R`
       - Produces tables with results of sensitivity analysis X.
+  - `results_functions.R`
+      - Contains some functions used in processing the results. Will be sourced by relevant files when needed.
