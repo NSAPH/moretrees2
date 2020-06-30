@@ -102,9 +102,13 @@ for (i in 1:length(dataset)) { # datasets
     geom_line(aes(x = tmmx, y = rr_clr), col = "red", lty = 2) +
     facet_wrap( . ~ outcome, nrow = 10) +
     theme_minimal() +
-    ylab("Rate Ratio") +
-    xlab("Temperature (Celsius)")  +
-    ylim(0.8, 3)
+    ylab("Relative Rate") +
+    xlab("Temperature (Celsius)") 
+  if (i == 1) {
+    plt <- plt + ylim(0.8, 2)
+  } else {
+    plt <- plt + ylim(0.8, 3)
+  }
   pdf(file = paste0("./figures/temp_RR_", ds, ".pdf"),
                     width = 8, height = 10)
   print(plt)
@@ -134,9 +138,13 @@ for (i in 1:length(dataset)) { # datasets
     geom_line(aes(x = rmax, y = rr_clr), col = "red", lty = 2) +
     facet_wrap( . ~ outcome, nrow = 10) +
     theme_minimal() +
-    ylab("Rate Ratio") +
-    xlab("Humidity (%)") +
-    ylim(0.8, 1.5)
+    ylab("Relative Rate") +
+    xlab("Humidity (%)")
+  if (i == 1) {
+    plt <- plt + ylim (0.8, 1.2)
+  } else {
+    plt <- plt + ylim(0.8, 1.5)
+  }
   pdf(file = paste0("./figures/humidity_RR_", ds, ".pdf"),
       width = 8, height = 10)
   print(plt)
