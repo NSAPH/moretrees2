@@ -141,7 +141,7 @@ dataset <- c("cvd", "resp")
 root <- c("7", "8")
 a_rho <- as.matrix(rbind(c(1, 1), c(0.9, 0.5)))
 b_rho <- as.matrix(rbind(c(1, 1), c(3 , 2)))
-prior <- c("main", "sens", "sens2")
+prior <- c("main", "sens4", "sens5")
 for (i in 1:2) {
   for (j in 1:3) {
     ds <- dataset[i]
